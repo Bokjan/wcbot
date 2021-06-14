@@ -32,7 +32,13 @@ void UvBuffer::Allocate(size_t SuggestedLength) {
   this->BasePtr = reinterpret_cast<char *>(MemPtr);
 }
 
-void UvBuffer::IncreaseLength(size_t Size) { this->Length += Size; }
+void UvBuffer::IncreaseLength(size_t Size) {
+  if (Size == 0) {
+    return;
+  }
+  this->Length += Size;
+  this->BasePtr[this->Length] = '\0';
+}
 
 void UvBuffer::Dequeue(size_t Size) {
   if (Size >= Length) {
