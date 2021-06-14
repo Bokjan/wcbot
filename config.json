@@ -1,0 +1,16 @@
+{
+    "Bot": {
+        "WebHook": "",
+        "Token": "",
+        "EncodingAesKey": ""
+    },
+    "Http": {
+        "BindIpv4": "0.0.0.0",
+        "BindPort": 3090
+    },
+    "Network": {
+        "MaxRecvBuffLength": 8388608,
+        "MaxSendBuffLength": 1048576
+    },
+    "CustomConfig": "/path/to/config/file"
+}
