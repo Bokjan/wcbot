@@ -34,4 +34,13 @@ void UvBuffer::Allocate(size_t SuggestedLength) {
 
 void UvBuffer::IncreaseLength(size_t Size) { this->Length += Size; }
 
+void UvBuffer::Dequeue(size_t Size) {
+  if (Size >= Length) {
+    this->Length = 0;
+    return;
+  }
+  memmove(this->BasePtr, this->BasePtr + Size, this->Length - Size);
+  this->Length -= Size;
+}
+
 }  // namespace wcbot

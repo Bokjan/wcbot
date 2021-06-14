@@ -1,8 +1,8 @@
 #include "CodecHttp.h"
 
-#include <string>
 #include <cstdio>
 #include <cstring>
+#include <string>
 
 namespace wcbot {
 

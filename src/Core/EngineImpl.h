@@ -2,9 +2,9 @@
 
 #include <uv.h>
 
+#include <cstdint>
 #include <string>
 #include <vector>
-#include <cstdint>
 
 #include "Codec/Codec.h"
 
@@ -19,7 +19,7 @@ struct BotConfig {
   } Bot;
   struct {
     std::string BindIpv4;
-    int         BindPort;
+    int BindPort;
   } Http;
   struct {
     uint64_t MaxRecvBuffLength;

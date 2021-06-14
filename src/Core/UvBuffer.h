@@ -11,6 +11,7 @@ class UvBuffer {
 
   void Allocate(size_t SuggestedLength);
   void IncreaseLength(size_t Size);
+  void Dequeue(size_t Size);
   char* GetBase() const { return BasePtr; }
   char* GetCurrent() const { return BasePtr + Length; }
   size_t GetLength() const { return Length; }
@@ -21,5 +22,6 @@ class UvBuffer {
   size_t Length;
   size_t Capacity;
 };
+using UvBufferPtr = UvBuffer*;
 
 }  // namespace wcbot

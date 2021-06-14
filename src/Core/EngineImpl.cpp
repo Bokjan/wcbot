@@ -1,6 +1,6 @@
 #include "EngineImpl.h"
-#include "UvBufferTcp.h"
 #include "Utility/Common.h"
+#include "UvBufferTcp.h"
 
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
@@ -10,11 +10,13 @@
 namespace wcbot {
 
 namespace mlcb {
-static void OnTcpRead(uv_stream_t *Handle, ssize_t NRead, const uv_buf_t *Buffer);
+static void OnTcpRead(uv_stream_t *Handle, ssize_t NRead,
+                      const uv_buf_t *Buffer);
 static void OnTcpClose(uv_handle_t *Handle);
 static void OnNewConnection(uv_stream_t *Handle, int Status);
-static void AllocateBuffer(uv_handle_t *Handle, size_t SuggestedSize, uv_buf_t *Buffer);
-}
+static void AllocateBuffer(uv_handle_t *Handle, size_t SuggestedSize,
+                           uv_buf_t *Buffer);
+}  // namespace mlcb
 
 #ifdef CHECK_INT_NOT_ZERO_RET
 #undef CHECK_INT_NOT_ZERO_RET
@@ -119,8 +121,7 @@ bool EngineImpl::ParseConfig(const std::string &Path) {
   return Ret;
 }
 
-int EngineImpl::Run()
-{
+int EngineImpl::Run() {
   uv_tcp_t UvServerTcp;
   sockaddr_in SockAddr;
   CHECK_INT_NOT_ZERO_RET(uv_tcp_init(this->UvMainLoop, &UvServerTcp));
@@ -132,7 +133,7 @@ int EngineImpl::Run()
   CHECK_INT_NOT_ZERO_RET(
       uv_listen(reinterpret_cast<uv_stream_t *>(&UvServerTcp), kDefaultBacklog,
                 mlcb::OnNewConnection));
-  UvServerTcp.data = this; // bind self
+  UvServerTcp.data = this;  // bind self
   int Ret = uv_run(this->UvMainLoop, UV_RUN_DEFAULT);
   printf("L%d %d\n", __LINE__, Ret);
   return Ret;
@@ -147,38 +148,42 @@ static void OnNewConnection(uv_stream_t *Tcp, int Status) {
     return;
   }
   EngineImpl *Impl = reinterpret_cast<EngineImpl *>(Tcp->data);
-  UvBufferTcp *Buffer = new UvBufferTcp();
+  UvBufferTcpPtr Buffer = new UvBufferTcp();
   Buffer->ServerTcp = reinterpret_cast<uv_tcp_t *>(Tcp);
   uv_tcp_init(Impl->UvMainLoop, &Buffer->ClientTcp);
   Buffer->ClientTcp.data = Buffer;
-  if (uv_accept(Tcp, reinterpret_cast<uv_stream_t *>(&Buffer->ClientTcp)) == 0) {
+  if (uv_accept(Tcp, reinterpret_cast<uv_stream_t *>(&Buffer->ClientTcp)) ==
+      0) {
     uv_read_start(reinterpret_cast<uv_stream_t *>(&Buffer->ClientTcp),
                   mlcb::AllocateBuffer, mlcb::OnTcpRead);
   } else {
-    uv_close(reinterpret_cast<uv_handle_t*>(&Buffer->ClientTcp), mlcb::OnTcpClose);
+    uv_close(reinterpret_cast<uv_handle_t *>(&Buffer->ClientTcp),
+             mlcb::OnTcpClose);
   }
 }
 
 static void OnTcpClose(uv_handle_t *Handle) {
   TRACE();
   void *UserData = Handle->data;
-  delete reinterpret_cast<UvBufferTcp *>(UserData);
+  delete reinterpret_cast<UvBufferTcpPtr>(UserData);
 }
 
 static void AllocateBuffer(uv_handle_t *Handle, size_t SuggestedSize,
                            uv_buf_t *Buffer) {
   TRACE();
-  UvBufferTcp *BufferObj = reinterpret_cast<UvBufferTcp *>(Handle->data);
+  UvBufferTcpPtr BufferObj = reinterpret_cast<UvBufferTcpPtr>(Handle->data);
   BufferObj->Allocate(SuggestedSize);
   Buffer->base = BufferObj->GetCurrent();
   Buffer->len = SuggestedSize;
   fprintf(stderr, "%p, %lu\n", Buffer->base, Buffer->len);
 }
 
-static void OnTcpRead(uv_stream_t *Handle, ssize_t NRead, const uv_buf_t *Buffer) {
+static void OnTcpRead(uv_stream_t *Handle, ssize_t NRead,
+                      const uv_buf_t *Buffer) {
   TRACE();
-  UvBufferTcp *BufferObj = reinterpret_cast<UvBufferTcp *>(Handle->data);
-  EngineImpl *PImpl = reinterpret_cast<EngineImpl *>(BufferObj->ServerTcp->data);
+  UvBufferTcpPtr BufferObj = reinterpret_cast<UvBufferTcpPtr>(Handle->data);
+  EngineImpl *PImpl =
+      reinterpret_cast<EngineImpl *>(BufferObj->ServerTcp->data);
   // currently used buffer size is larger than configured value
   if (BufferObj->GetCapacity() > PImpl->Config.Network.MaxRecvBuffLength) {
     TRACE();
@@ -194,7 +199,7 @@ static void OnTcpRead(uv_stream_t *Handle, ssize_t NRead, const uv_buf_t *Buffer
     uv_close(reinterpret_cast<uv_handle_t *>(Handle), mlcb::OnTcpClose);
     return;
   }
-  // just increase the buffer length value 
+  // just increase the buffer length value
   BufferObj->IncreaseLength(NRead);
   // run codec
   for (auto *CodecPtr : PImpl->ServerCodecs) {
@@ -209,5 +214,3 @@ static void OnTcpRead(uv_stream_t *Handle, ssize_t NRead, const uv_buf_t *Buffer
 }  // namespace mlcb
 
 }  // namespace wcbot
-
-

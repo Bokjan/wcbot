@@ -11,5 +11,6 @@ class UvBufferTcp : public UvBuffer {
   uv_tcp_t ClientTcp;
   uv_tcp_t *ServerTcp;
 };
+using UvBufferTcpPtr = UvBufferTcp *;
 
 }  // namespace wcbot
