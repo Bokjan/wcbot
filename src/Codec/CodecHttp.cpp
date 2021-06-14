@@ -7,14 +7,14 @@
 namespace wcbot {
 
 static size_t HttpProtocolCheck(const UvBuffer &Buffer) {
-  char *Search = strnstr(Buffer.GetBase(), "\r\n\r\n", Buffer.GetLength());
+  char *Search = strstr(Buffer.GetBase(), "\r\n\r\n");
   if (Search == nullptr) {
     return 0;
   }
   size_t HeaderLength = Search - Buffer.GetBase() + sizeof("\r\n\r\n") - 1;
-  Search = strnstr(Buffer.GetBase(), "Content-Length:", HeaderLength);
+  Search = strstr(Buffer.GetBase(), "Content-Length:");
   if (Search == nullptr) {
-    Search = strnstr(Buffer.GetBase(), "content-length:", HeaderLength);
+    Search = strstr(Buffer.GetBase(), "content-length:");
   }
   if (Search == nullptr) {
     // buffer length == header length, w/o `Content-Length`?
@@ -25,8 +25,7 @@ static size_t HttpProtocolCheck(const UvBuffer &Buffer) {
     }
   }
   char *ContentLengthStr = Search + sizeof("Content-Length:") - 1;
-  Search = strnstr(ContentLengthStr, "\r\n",
-                   HeaderLength - (ContentLengthStr - Buffer.GetBase()));
+  Search = strstr(ContentLengthStr, "\r\n");
   if (Search == nullptr) {
     return 0;
   }
