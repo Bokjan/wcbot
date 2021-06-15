@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "Codec/Codec.h"
+#include "ITC.h"
 
 namespace wcbot {
 
@@ -25,9 +26,14 @@ struct BotConfig {
     uint64_t MaxRecvBuffLength;
     uint64_t MaxSendBuffLength;
   } Network;
+  struct {
+    uint32_t WorkerThread;
+  } Framework;
   std::string CustomConfig;
   BotConfig() : ParseOk(false) {}
 };
+
+class ThreadContext;
 
 class EngineImpl {
  public:
@@ -38,11 +44,15 @@ class EngineImpl {
   BotConfig Config;
   std::vector<Codec*> ServerCodecs;
   std::vector<Codec*> ClientCodecs;
+  std::vector<ThreadContext*> Threads;
 
   EngineImpl();
+  ~EngineImpl();
 
-  bool ParseConfig(const std::string& Path);
   int Run();
+  bool ParseConfig(const std::string& Path);
+  bool Initialize();
+  bool InitializeInterThreadCommunication();
 };
 
 }  // namespace wcbot

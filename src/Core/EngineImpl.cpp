@@ -1,6 +1,7 @@
 #include "EngineImpl.h"
 #include "Utility/Common.h"
 #include "UvBufferTcp.h"
+#include "WorkerThread.h"
 
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
@@ -16,6 +17,8 @@ static void OnTcpClose(uv_handle_t *Handle);
 static void OnNewConnection(uv_stream_t *Handle, int Status);
 static void AllocateBuffer(uv_handle_t *Handle, size_t SuggestedSize,
                            uv_buf_t *Buffer);
+static void OnAsyncSend(uv_async_t *Async);
+
 }  // namespace mlcb
 
 #ifdef CHECK_INT_NOT_ZERO_RET
@@ -33,8 +36,27 @@ static void AllocateBuffer(uv_handle_t *Handle, size_t SuggestedSize,
 EngineImpl::EngineImpl()
     : IsFork(true), StopSign(false), UvMainLoop(uv_default_loop()) {}
 
-inline bool RapidJsonGetString(const rapidjson::Value &Value,
-                               const char *Member, std::string &Destination) {
+EngineImpl::~EngineImpl() {
+  // server codec
+  for (auto Ptr : ServerCodecs) {
+    delete Ptr;
+  }
+  ServerCodecs.clear();
+  // client codec
+  for (auto Ptr : ClientCodecs) {
+    delete Ptr;
+  }
+  ClientCodecs.clear();
+  // worker thread
+  for (auto Ptr : Threads) {
+    delete Ptr;
+  }
+  Threads.clear();
+}
+
+static inline bool RapidJsonGetString(const rapidjson::Value &Value,
+                                      const char *Member,
+                                      std::string &Destination) {
   if (!Value[Member].IsString()) {
     return false;
   }
@@ -43,12 +65,23 @@ inline bool RapidJsonGetString(const rapidjson::Value &Value,
   return true;
 }
 
-inline bool RapidJsonGetUInt64(const rapidjson::Value &Value,
-                               const char *Member, uint64_t &Destination) {
+static inline bool RapidJsonGetUInt64(const rapidjson::Value &Value,
+                                      const char *Member,
+                                      uint64_t &Destination) {
   if (!Value[Member].IsUint64()) {
     return false;
   }
   Destination = Value[Member].GetUint64();
+  return true;
+}
+
+static inline bool RapidJsonGetUInt32(const rapidjson::Value &Value,
+                                      const char *Member,
+                                      uint32_t &Destination) {
+  if (!Value[Member].IsUint()) {
+    return false;
+  }
+  Destination = Value[Member].GetUint();
   return true;
 }
 
@@ -93,6 +126,11 @@ static bool InternalParseConfig(BotConfig &Config,
     BREAK_ON_FALSE(RapidJsonGetUInt64(Network, "MaxSendBuffLength",
                                       Config.Network.MaxSendBuffLength));
 
+    // Framework
+    const rapidjson::Value &Framework = Json["Framework"];
+    BREAK_ON_FALSE(RapidJsonGetUInt32(Framework, "WorkerThread",
+                                      Config.Framework.WorkerThread));
+
     // CustomConfig
     if (Json.HasMember("CustomConfig")) {
       Config.CustomConfig = Json["CustomConfig"].GetString();
@@ -122,6 +160,11 @@ bool EngineImpl::ParseConfig(const std::string &Path) {
 }
 
 int EngineImpl::Run() {
+  // start threads
+  for (ThreadContext *Ptr : Threads) {
+    uv_thread_create(&Ptr->UvThread, workerthread::EntryPoint, Ptr);
+  }
+  // start server
   uv_tcp_t UvServerTcp;
   sockaddr_in SockAddr;
   CHECK_INT_NOT_ZERO_RET(uv_tcp_init(this->UvMainLoop, &UvServerTcp));
@@ -136,7 +179,32 @@ int EngineImpl::Run() {
   UvServerTcp.data = this;  // bind self
   int Ret = uv_run(this->UvMainLoop, UV_RUN_DEFAULT);
   printf("L%d %d\n", __LINE__, Ret);
+  // join worker threads
+  for (ThreadContext *Ptr : Threads) {
+    uv_thread_join(&Ptr->UvThread);
+  }
   return Ret;
+}
+
+bool EngineImpl::Initialize() {
+  bool Ret = false;
+  do {
+    BREAK_ON_FALSE(this->InitializeInterThreadCommunication());
+    Ret = true;
+  } while (false);
+  return Ret;
+}
+
+bool EngineImpl::InitializeInterThreadCommunication() {
+  for (int i = 0; i < Config.Framework.WorkerThread; ++i) {
+    ThreadContext *Worker = new ThreadContext();
+    Worker->ThreadIndex = i;
+    Worker->WorkerToMainAsync.data = Worker;
+    uv_async_init(this->UvMainLoop, &Worker->WorkerToMainAsync,
+                  mlcb::OnAsyncSend);
+    Threads.push_back(Worker);
+  }
+  return true;
 }
 
 namespace mlcb {
@@ -209,6 +277,11 @@ static void OnTcpRead(uv_stream_t *Handle, ssize_t NRead,
       break;
     }
   }
+}
+
+static void OnAsyncSend(uv_async_t *Async) {
+  ThreadContext *Worker = reinterpret_cast<ThreadContext *>(Async->data);
+  // todo
 }
 
 }  // namespace mlcb

@@ -12,5 +12,8 @@
         "MaxRecvBuffLength": 8388608,
         "MaxSendBuffLength": 1048576
     },
+    "Framework": {
+        "WorkerThread": 1
+    },
     "CustomConfig": "/path/to/config/file"
 }
