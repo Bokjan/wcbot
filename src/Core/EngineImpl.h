@@ -35,11 +35,11 @@ struct BotConfig {
 
 class ThreadContext;
 
-class EngineImpl {
+class EngineImpl final {
  public:
   bool IsFork;
-  bool StopSign;
-  uv_loop_t* UvMainLoop;
+  uv_loop_t* UvLoop;
+  uv_signal_t UvSignal;
 
   BotConfig Config;
   std::vector<Codec*> ServerCodecs;
@@ -52,7 +52,10 @@ class EngineImpl {
   int Run();
   bool ParseConfig(const std::string& Path);
   bool Initialize();
+
+ private:
   bool InitializeInterThreadCommunication();
+  bool InitializeSignalHandler();
 };
 
 }  // namespace wcbot

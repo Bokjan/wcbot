@@ -11,6 +11,7 @@ public:
   int ThreadIndex;
   uv_loop_t UvLoop;
   uv_thread_t UvThread;
+  uv_signal_t UvSignal;
   ItcQueue MainToWorkerQueue;
   ItcQueue WorkerToMainQueue;
   uv_async_t MainToWorkerAsync;

@@ -17,7 +17,8 @@ static void OnTcpClose(uv_handle_t *Handle);
 static void OnNewConnection(uv_stream_t *Handle, int Status);
 static void AllocateBuffer(uv_handle_t *Handle, size_t SuggestedSize,
                            uv_buf_t *Buffer);
-static void OnAsyncSend(uv_async_t *Async);
+static void OnItcAsyncSend(uv_async_t *Async);
+static void OnSignalInterrupt(uv_signal_t *Signal, int SigNum);
 
 }  // namespace mlcb
 
@@ -34,7 +35,7 @@ static void OnAsyncSend(uv_async_t *Async);
   } while (false);
 
 EngineImpl::EngineImpl()
-    : IsFork(true), StopSign(false), UvMainLoop(uv_default_loop()) {}
+    : IsFork(true), StopSign(false), UvLoop(uv_default_loop()) {}
 
 EngineImpl::~EngineImpl() {
   // server codec
@@ -167,7 +168,7 @@ int EngineImpl::Run() {
   // start server
   uv_tcp_t UvServerTcp;
   sockaddr_in SockAddr;
-  CHECK_INT_NOT_ZERO_RET(uv_tcp_init(this->UvMainLoop, &UvServerTcp));
+  CHECK_INT_NOT_ZERO_RET(uv_tcp_init(this->UvLoop, &UvServerTcp));
   CHECK_INT_NOT_ZERO_RET(uv_ip4_addr(Config.Http.BindIpv4.c_str(),
                                      Config.Http.BindPort, &SockAddr));
   CHECK_INT_NOT_ZERO_RET(
@@ -177,7 +178,7 @@ int EngineImpl::Run() {
       uv_listen(reinterpret_cast<uv_stream_t *>(&UvServerTcp), kDefaultBacklog,
                 mlcb::OnNewConnection));
   UvServerTcp.data = this;  // bind self
-  int Ret = uv_run(this->UvMainLoop, UV_RUN_DEFAULT);
+  int Ret = uv_run(this->UvLoop, UV_RUN_DEFAULT);
   printf("L%d %d\n", __LINE__, Ret);
   // join worker threads
   for (ThreadContext *Ptr : Threads) {
@@ -190,6 +191,7 @@ bool EngineImpl::Initialize() {
   bool Ret = false;
   do {
     BREAK_ON_FALSE(this->InitializeInterThreadCommunication());
+    BREAK_ON_FALSE(this->InitializeSignalHandler());
     Ret = true;
   } while (false);
   return Ret;
@@ -199,11 +201,18 @@ bool EngineImpl::InitializeInterThreadCommunication() {
   for (int i = 0; i < Config.Framework.WorkerThread; ++i) {
     ThreadContext *Worker = new ThreadContext();
     Worker->ThreadIndex = i;
+    uv_async_init(this->UvLoop, &Worker->WorkerToMainAsync,
+                  mlcb::OnItcAsyncSend);
     Worker->WorkerToMainAsync.data = Worker;
-    uv_async_init(this->UvMainLoop, &Worker->WorkerToMainAsync,
-                  mlcb::OnAsyncSend);
     Threads.push_back(Worker);
   }
+  return true;
+}
+
+bool EngineImpl::InitializeSignalHandler() {
+  uv_signal_init(this->UvLoop, &this->UvSignal);
+  this->UvSignal.data = this;
+  uv_signal_start(&this->UvSignal, mlcb::OnSignalInterrupt, SIGINT);
   return true;
 }
 
@@ -218,7 +227,7 @@ static void OnNewConnection(uv_stream_t *Tcp, int Status) {
   EngineImpl *Impl = reinterpret_cast<EngineImpl *>(Tcp->data);
   UvBufferTcpPtr Buffer = new UvBufferTcp();
   Buffer->ServerTcp = reinterpret_cast<uv_tcp_t *>(Tcp);
-  uv_tcp_init(Impl->UvMainLoop, &Buffer->ClientTcp);
+  uv_tcp_init(Impl->UvLoop, &Buffer->ClientTcp);
   Buffer->ClientTcp.data = Buffer;
   if (uv_accept(Tcp, reinterpret_cast<uv_stream_t *>(&Buffer->ClientTcp)) ==
       0) {
@@ -279,9 +288,15 @@ static void OnTcpRead(uv_stream_t *Handle, ssize_t NRead,
   }
 }
 
-static void OnAsyncSend(uv_async_t *Async) {
+static void OnItcAsyncSend(uv_async_t *Async) {
   ThreadContext *Worker = reinterpret_cast<ThreadContext *>(Async->data);
   // todo
+}
+
+static void OnSignalInterrupt(uv_signal_t *Signal, int SigNum) {
+  EngineImpl *Self = reinterpret_cast<EngineImpl *>(Signal->data);
+  uv_stop(Self->UvLoop);
+  fprintf(stderr, "SIGINT captured, main thread\n");
 }
 
 }  // namespace mlcb

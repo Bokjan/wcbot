@@ -1,6 +1,8 @@
 #include "Engine.h"
 #include "EngineImpl.h"
 
+#include <unistd.h>
+
 #include <cstdlib>
 
 namespace wcbot {
@@ -40,9 +42,9 @@ int Engine::Run() {
   return PImpl->Run();
 }
 
-bool Engine::GetStop() const { return PImpl->StopSign; }
+bool Engine::Initialize() { return PImpl->Initialize(); }
 
-void Engine::SetStop(bool Stop) { PImpl->StopSign = Stop; }
+void Engine::Stop() { raise(SIGINT); }
 
 void Engine::RegisterServerCodec(Codec *CodecPtr) {
   PImpl->ServerCodecs.push_back(CodecPtr);

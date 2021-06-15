@@ -15,8 +15,8 @@ class Engine {
   int Run();
   bool ParseArguments(int argc, char* argv[]);
   const std::string& GetCustomConfigPath() const;
-  bool GetStop() const;
-  void SetStop(bool Stop);
+  void Stop();
+  bool Initialize();
 
   void RegisterServerCodec(Codec* CodecPtr);
   void RegisterClientCodec(Codec* CodecPtr);
