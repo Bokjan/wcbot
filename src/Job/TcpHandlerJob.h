@@ -1,19 +1,20 @@
 #pragma once
 
+#include "Core/TcpMemoryBuffer.h"
 #include "Job.h"
-
-#include "Core/TcpUvBuffer.h"
 
 namespace wcbot {
 
 class TcpHandlerJob : public Job {
  public:
-  explicit TcpHandlerJob(ThreadContext *Worker, TcpUvBufferPtr RB)
+  explicit TcpHandlerJob(ThreadContext *Worker, TcpMemoryBufferPtr RB)
       : Job(Worker), ReceiveBuffer(RB) {}
+  virtual ~TcpHandlerJob() { delete ReceiveBuffer; }
   virtual void Do() = 0;
+  void SendData(MemoryBufferPtr Buffer, bool CloseConnection = false);
 
  protected:
-  TcpUvBufferPtr ReceiveBuffer;
+  TcpMemoryBufferPtr ReceiveBuffer;
 };
 
 }  // namespace wcbot

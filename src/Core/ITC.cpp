@@ -1,7 +1,8 @@
 #include "ITC.h"
 
-#include "TcpUvBuffer.h"
+#include "EngineImpl.h"
 #include "WorkerThread.h"
+#include "TcpMemoryBuffer.h"
 
 #include <deque>
 #include <mutex>
@@ -69,6 +70,13 @@ namespace itc {
 void TcpMainToWorker::Process() {
   // dispatch TCP request
   worker_impl::DispatchTcp(this->Buffer, this->Worker);
+  // free memory
+  this->DeleteSelf();
+}
+
+void TcpWorkerToMain::Process() {
+  // do uv write
+  main_impl::SendTcpToClient(EImpl, Buffer, ConnId, CloseConnection);
   // free memory
   this->DeleteSelf();
 }

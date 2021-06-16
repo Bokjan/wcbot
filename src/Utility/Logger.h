@@ -45,7 +45,7 @@ extern const char *g_LogLevelCString[];
 #define LOG_LOG_FORWARD(lvl, fmt, args...)                                 \
   wcbot::logger_internal::g_Logger->Log(                                   \
       lvl, "[%s] %s (%s:%d) " fmt "\n", ::wcbot::Logger::GetTimeCString(), \
-      ::wcbot::logger_internal::g_LogLevelCString[lvl], __PRETTY_FUNCTION__, __LINE__, ##args)
+      ::wcbot::logger_internal::g_LogLevelCString[lvl], __FUNCTION__, __LINE__, ##args)
 #define LOG_TRACE(fmt, args...) LOG_LOG_FORWARD(::wcbot::Logger::kTrace, fmt, ##args)
 #define LOG_DEBUG(fmt, args...) LOG_LOG_FORWARD(::wcbot::Logger::kDebug, fmt, ##args)
 #define LOG_INFO(fmt, args...) LOG_LOG_FORWARD(::wcbot::Logger::kInfo, fmt, ##args)

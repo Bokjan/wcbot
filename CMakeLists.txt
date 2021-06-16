@@ -15,7 +15,8 @@ ENDIF()
 LINK_LIBRARIES(pthread openssl uv)
 
 SET(COMP_FILES  src/Core/EngineImpl.cpp src/Core/Engine.cpp src/Codec/CodecHttp.cpp
-                src/Core/UvBuffer.cpp src/Core/ITC.cpp src/Core/WorkerThread.cpp
+                src/Core/MemoryBuffer.cpp src/Core/ITC.cpp src/Core/WorkerThread.cpp
+                src/Job/TcpHandlerJob.cpp
                 src/Utility/Common.cpp src/Utility/Logger.cpp)
 # SET(COMP_FILES ${COMP_FILES} "../ThirdParty/md5/src/md5.cpp")
 # SET(COMP_FILES ${COMP_FILES} "../ThirdParty/cpp-base64/base64.cpp")

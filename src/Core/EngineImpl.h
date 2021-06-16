@@ -2,6 +2,7 @@
 
 #include <uv.h>
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -33,6 +34,7 @@ struct BotConfig {
   BotConfig() : ParseOk(false) {}
 };
 
+class MemoryBuffer;
 class ThreadContext;
 class ThreadDispatcher;
 
@@ -46,7 +48,9 @@ class EngineImpl final {
   std::vector<Codec*> ServerCodecs;
   std::vector<Codec*> ClientCodecs;
   std::vector<ThreadContext*> Threads;
-  ThreadDispatcher *Dispatcher;
+  ThreadDispatcher* Dispatcher;
+  uint64_t TcpConnectionId;
+  std::map<uint64_t, uv_tcp_t*> TcpIdToConn;
 
   EngineImpl();
   ~EngineImpl();
@@ -54,10 +58,15 @@ class EngineImpl final {
   int Run();
   bool ParseConfig(const std::string& Path);
   bool Initialize();
+  uint64_t NextTcpConnectionId() { return TcpConnectionId++; }
 
  private:
   bool InitializeInterThreadCommunication();
   bool InitializeSignalHandler();
 };
+
+namespace main_impl {
+void SendTcpToClient(EngineImpl* Impl, MemoryBuffer* Buffer, uint64_t ConnId, bool Close);
+}
 
 }  // namespace wcbot

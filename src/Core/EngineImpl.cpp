@@ -1,5 +1,5 @@
 #include "EngineImpl.h"
-#include "TcpUvBuffer.h"
+#include "TcpMemoryBuffer.h"
 #include "Utility/Common.h"
 #include "Utility/Logger.h"
 #include "WorkerThread.h"
@@ -11,6 +11,7 @@ namespace wcbot {
 
 namespace main_impl {
 static void OnTcpRead(uv_stream_t *Handle, ssize_t NRead, const uv_buf_t *Buffer);
+static void OnTcpWrite(uv_write_t *UvWriteBase, int Status);
 static void OnTcpClose(uv_handle_t *Handle);
 static void OnNewConnection(uv_stream_t *Handle, int Status);
 static void AllocateBuffer(uv_handle_t *Handle, size_t SuggestedSize, uv_buf_t *Buffer);
@@ -54,15 +55,6 @@ static inline bool RapidJsonGetUInt32(const rapidjson::Value &Value, const char 
     return false;
   }
   Destination = Value[Member].GetUint();
-  return true;
-}
-
-static inline bool RapidJsonGetInt32(const rapidjson::Value &Value, const char *Member,
-                                     int32_t &Destination) {
-  if (!Value[Member].IsInt()) {
-    return false;
-  }
-  Destination = Value[Member].GetInt();
   return true;
 }
 
@@ -151,7 +143,8 @@ class RoundRobinThreadDispatcher final : public ThreadDispatcher {
   ssize_t Current;
 };
 
-EngineImpl::EngineImpl() : IsFork(true), UvLoop(uv_default_loop()), Dispatcher(nullptr) {}
+EngineImpl::EngineImpl()
+    : IsFork(true), UvLoop(uv_default_loop()), Dispatcher(nullptr), TcpConnectionId(0) {}
 
 EngineImpl::~EngineImpl() {
   // server codec
@@ -232,6 +225,7 @@ bool EngineImpl::InitializeInterThreadCommunication() {
   for (uint32_t i = 0; i < Config.Framework.WorkerThread; ++i) {
     ThreadContext *Worker = new ThreadContext();
     Worker->ThreadIndex = i;
+    Worker->EImpl = this;
     uv_async_init(this->UvLoop, &Worker->WorkerToMainAsync, main_impl::OnItcAsyncSend);
     Worker->WorkerToMainAsync.data = Worker;
     Threads.push_back(Worker);
@@ -249,44 +243,55 @@ bool EngineImpl::InitializeSignalHandler() {
 namespace main_impl {
 
 static void OnNewConnection(uv_stream_t *Tcp, int Status) {
-  LOG_TRACE("enter");
+  LOG_TRACE("enter, status=%d", Status);
   if (Status < 0) {
     LOG_ERROR("TCP new connection error, status=%d", Status);
     return;
   }
   EngineImpl *Impl = reinterpret_cast<EngineImpl *>(Tcp->data);
-  TcpUvBufferPtr Buffer = new TcpUvBuffer();
-  Buffer->ServerTcp = reinterpret_cast<uv_tcp_t *>(Tcp);
-  uv_tcp_init(Impl->UvLoop, &Buffer->ClientTcp);
-  Buffer->ClientTcp.data = Buffer;
-  if (uv_accept(Tcp, reinterpret_cast<uv_stream_t *>(&Buffer->ClientTcp)) == 0) {
-    uv_read_start(reinterpret_cast<uv_stream_t *>(&Buffer->ClientTcp), main_impl::AllocateBuffer,
+  uint64_t ConnId = Impl->NextTcpConnectionId();
+  uv_tcp_t *ClientTcp = new uv_tcp_t;
+  Impl->TcpIdToConn[ConnId] = ClientTcp;
+  TcpMemoryBufferPtr Buffer = new TcpMemoryBuffer(ConnId, reinterpret_cast<uv_tcp_t *>(Tcp));
+  uv_tcp_init(Impl->UvLoop, ClientTcp);
+  ClientTcp->data = Buffer;
+  if (uv_accept(Tcp, reinterpret_cast<uv_stream_t *>(ClientTcp)) == 0) {
+    uv_read_start(reinterpret_cast<uv_stream_t *>(ClientTcp), main_impl::AllocateBuffer,
                   main_impl::OnTcpRead);
   } else {
-    uv_close(reinterpret_cast<uv_handle_t *>(&Buffer->ClientTcp), main_impl::OnTcpClose);
+    uv_close(reinterpret_cast<uv_handle_t *>(ClientTcp), main_impl::OnTcpClose);
   }
 }
 
 static void OnTcpClose(uv_handle_t *Handle) {
   LOG_TRACE("enter");
-  void *UserData = Handle->data;
-  delete reinterpret_cast<TcpUvBufferPtr>(UserData);
+  TcpMemoryBufferPtr TcpBuf = reinterpret_cast<TcpMemoryBufferPtr>(Handle->data);
+  EngineImpl *PImpl = reinterpret_cast<EngineImpl *>(TcpBuf->ServerTcp->data);
+  do {
+    auto FindConn = PImpl->TcpIdToConn.find(TcpBuf->ClientTcpId);
+    if (FindConn == PImpl->TcpIdToConn.end()) {
+      break;
+    }
+    PImpl->TcpIdToConn.erase(FindConn);
+  } while (false);
+  delete TcpBuf;
+  delete reinterpret_cast<uv_tcp_t*>(Handle);
 }
 
 static void AllocateBuffer(uv_handle_t *Handle, size_t SuggestedSize, uv_buf_t *Buffer) {
-  LOG_TRACE("enter");
-  TcpUvBufferPtr BufferObj = reinterpret_cast<TcpUvBufferPtr>(Handle->data);
-  BufferObj->Allocate(SuggestedSize);
-  Buffer->base = BufferObj->GetCurrent();
+  // LOG_TRACE("enter");
+  TcpMemoryBufferPtr MemBuf = reinterpret_cast<TcpMemoryBufferPtr>(Handle->data);
+  MemBuf->Allocate(SuggestedSize);
+  Buffer->base = MemBuf->GetCurrent();
   Buffer->len = SuggestedSize;
 }
 
 static void OnTcpRead(uv_stream_t *Handle, ssize_t NRead, const uv_buf_t *Buffer) {
-  LOG_TRACE("enter");
-  TcpUvBufferPtr BufferObj = reinterpret_cast<TcpUvBufferPtr>(Handle->data);
-  EngineImpl *PImpl = reinterpret_cast<EngineImpl *>(BufferObj->ServerTcp->data);
+  LOG_TRACE("enter, nread=%ld", NRead);
+  TcpMemoryBufferPtr MemBuf = reinterpret_cast<TcpMemoryBufferPtr>(Handle->data);
+  EngineImpl *PImpl = reinterpret_cast<EngineImpl *>(MemBuf->ServerTcp->data);
   // currently used buffer size is larger than configured value
-  if (BufferObj->GetCapacity() > PImpl->Config.Network.MaxRecvBuffLength) {
+  if (MemBuf->GetCapacity() > PImpl->Config.Network.MaxRecvBuffLength) {
     LOG_TRACE("enter");
     uv_close(reinterpret_cast<uv_handle_t *>(Handle), main_impl::OnTcpClose);
     return;
@@ -300,18 +305,22 @@ static void OnTcpRead(uv_stream_t *Handle, ssize_t NRead, const uv_buf_t *Buffer
     return;
   }
   // just increase the buffer length value
-  BufferObj->IncreaseLength(NRead);
+  MemBuf->IncreaseLength(NRead);
   // run codec
   for (auto *CodecPtr : PImpl->ServerCodecs) {
-    ssize_t ValidLength = CodecPtr->IsComplete(*BufferObj);
+    ssize_t ValidLength = CodecPtr->IsComplete(*MemBuf);
     if (ValidLength > 0) {
+      // create a new buf for this conn, to receive more pkgs
+      TcpMemoryBufferPtr NewBuf = new TcpMemoryBuffer(MemBuf->ClientTcpId, MemBuf->ServerTcp);
+      NewBuf->Append(MemBuf->GetBase() + ValidLength, MemBuf->GetLength() - ValidLength);
+      Handle->data = NewBuf;
       // dispatch a `TcpMainToWorker` async ITC event
       ssize_t Index = PImpl->Dispatcher->NextThreadIndex();
       ThreadContext *Worker = PImpl->Threads[Index];
-      ItcEvent *Event = new itc::TcpMainToWorker(BufferObj, Worker);
+      ItcEvent *Event = new itc::TcpMainToWorker(MemBuf, Worker);
       Worker->MainToWorkerQueue.Enqueue(Event);
       // fire an async notification
-      uv_async_send(&Worker->MainToWorkerAsync);
+      Worker->NotifyWorker();
       break;
     }
   }
@@ -334,6 +343,42 @@ static void OnSignalInterrupt(uv_signal_t *Signal, int SigNum) {
   EngineImpl *Self = reinterpret_cast<EngineImpl *>(Signal->data);
   uv_stop(Self->UvLoop);
   LOG_ALL("SIGINT captured, main thread");
+}
+
+struct UvWriteRequest {
+  uv_write_t UvWrite;
+  uv_buf_t UvBuffer;
+};
+
+void SendTcpToClient(EngineImpl *Impl, MemoryBuffer *Buffer, uint64_t ConnId, bool Close) {
+  LOG_TRACE("enter");
+  auto ConnPair = Impl->TcpIdToConn.find(ConnId);
+  if (ConnPair == Impl->TcpIdToConn.end()) {
+    LOG_INFO("conn=%lu already closed", ConnId);
+    delete Buffer;
+    return;
+  }
+  UvWriteRequest *UvWrite = new UvWriteRequest;
+  UvWrite->UvWrite.data = Buffer;
+  UvWrite->UvBuffer.base = Buffer->GetBase();
+  UvWrite->UvBuffer.len = Buffer->GetLength();
+  uv_write(reinterpret_cast<uv_write_t *>(UvWrite),
+           reinterpret_cast<uv_stream_t *>(ConnPair->second), &UvWrite->UvBuffer, 1,
+           main_impl::OnTcpWrite);
+  if (Close) {
+    uv_close(reinterpret_cast<uv_handle_t *>(ConnPair->second), main_impl::OnTcpClose);
+  }
+}
+
+static void OnTcpWrite(uv_write_t *UvWriteBase, int Status) {
+  LOG_TRACE("enter, status=%d", Status);
+  UvWriteRequest *UvWrite = reinterpret_cast<UvWriteRequest *>(UvWriteBase);
+  if (Status < 0) {
+    LOG_ERROR("uv_write error, status=%d, desc=%s", Status, uv_err_name(Status));
+  }
+  MemoryBuffer *MemBuf = reinterpret_cast<MemoryBuffer *>(UvWrite->UvWrite.data);
+  delete MemBuf;
+  delete UvWrite;
 }
 
 }  // namespace main_impl

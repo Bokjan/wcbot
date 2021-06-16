@@ -12,8 +12,10 @@ class Job {
   virtual ~Job() {}
   virtual void Do() = 0;
 
- private:
+ public:
   ThreadContext *Worker;
+
+ protected:
   Job *Parent;
   std::vector<Job *> Children;
 };

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 // Inter-Thread Communication
 
 namespace wcbot {
@@ -29,38 +31,40 @@ class ItcEvent {
   virtual void Process() = 0;
 };
 
-class TcpUvBuffer;
+class MemoryBuffer;
+class TcpMemoryBuffer;
 class ThreadContext;
 class EngineImpl;
 
 namespace itc {
 
-class Tcp : public ItcEvent {
+class TcpMainToWorker final : public ItcEvent {
  public:
-  explicit Tcp(TcpUvBuffer* Buffer) : Buffer(Buffer) {}
-  void Process() = 0;
-
- protected:
-  TcpUvBuffer* Buffer;
-};
-
-class TcpMainToWorker final : public Tcp {
- public:
-  explicit TcpMainToWorker(TcpUvBuffer* Buffer, ThreadContext* Worker)
-      : Tcp(Buffer), Worker(Worker) {}
+  explicit TcpMainToWorker(TcpMemoryBuffer* Buffer, ThreadContext* Worker)
+      : Buffer(Buffer), Worker(Worker) {}
   void Process();
   void DeleteSelf() { delete this; }
 
  private:
+  TcpMemoryBuffer* Buffer;
   ThreadContext* Worker;
 };
 
-class TcpWorkerToMain final : public Tcp {
+class TcpWorkerToMain final : public ItcEvent {
  public:
-  explicit TcpWorkerToMain(TcpUvBuffer* Buffer) : Tcp(Buffer) {}
+  explicit TcpWorkerToMain(EngineImpl* EImpl, MemoryBuffer* Buffer, uint64_t ConnId)
+      : EImpl(EImpl), Buffer(Buffer), ConnId(ConnId), CloseConnection(false) {}
+  void SetCloseConnection() { CloseConnection = true; }
   void Process();
   void DeleteSelf() { delete this; }
+
+ private:
+  EngineImpl* EImpl;
+  MemoryBuffer* Buffer;
+  uint64_t ConnId;
+  bool CloseConnection;
 };
+
 }  // namespace itc
 
 }  // namespace wcbot

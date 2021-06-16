@@ -1,9 +1,14 @@
 #include "WorkerThread.h"
 
-#include "Utility/Logger.h"
 #include "Job/HttpHandlerJob.h"
+#include "Utility/Logger.h"
 
 namespace wcbot {
+
+void ThreadContext::NotifyMain() { uv_async_send(&this->WorkerToMainAsync); }
+
+void ThreadContext::NotifyWorker() { uv_async_send(&this->MainToWorkerAsync); }
+
 namespace worker_impl {
 
 static void OnItcAsyncSend(uv_async_t *Async) {
@@ -46,11 +51,13 @@ void EntryPoint(void *Argument) {
   AfterLoop(Self);
 }
 
-void DispatchTcp(TcpUvBuffer *Buffer, ThreadContext *Worker) {
+void DispatchTcp(TcpMemoryBuffer *Buffer, ThreadContext *Worker) {
   // todo: http handler
   Job *NewJob = new HttpHandlerJob(Worker, Buffer);
   NewJob->Do();
+  
 }
 
 }  // namespace worker_impl
+
 }  // namespace wcbot
