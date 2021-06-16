@@ -6,11 +6,11 @@
 
 namespace wcbot {
 
-class UvBufferTcp : public UvBuffer {
+class TcpUvBuffer : public UvBuffer {
  public:
   uv_tcp_t ClientTcp;
   uv_tcp_t *ServerTcp;
 };
-using UvBufferTcpPtr = UvBufferTcp *;
+using TcpUvBufferPtr = TcpUvBuffer *;
 
 }  // namespace wcbot

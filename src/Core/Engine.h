@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Codec/Codec.h"
+#include "Utility/Logger.h"
 
 #include <string>
 

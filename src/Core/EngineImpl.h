@@ -2,7 +2,6 @@
 
 #include <uv.h>
 
-#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -27,6 +26,7 @@ struct BotConfig {
     uint64_t MaxSendBuffLength;
   } Network;
   struct {
+    std::string LogLevel;
     uint32_t WorkerThread;
   } Framework;
   std::string CustomConfig;

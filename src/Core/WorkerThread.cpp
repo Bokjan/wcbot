@@ -1,5 +1,7 @@
 #include "WorkerThread.h"
 
+#include "Utility/Logger.h"
+
 namespace wcbot {
 namespace workerthread {
 
@@ -11,7 +13,7 @@ static void OnItcAsyncSend(uv_async_t *Async) {
 static void OnSignalInterrupt(uv_signal_t *Signal, int SigNum) {
   ThreadContext *Self = reinterpret_cast<ThreadContext *>(Signal->data);
   uv_stop(&Self->UvLoop);
-  fprintf(stderr, "SIGINT captured, worker thread %02d\n", Self->ThreadIndex);
+  LOG_ALL("SIGINT captured, worker thread %02d", Self->ThreadIndex);
 }
 
 static void BeforeLoop(ThreadContext *Self) {

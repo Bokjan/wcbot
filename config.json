@@ -13,6 +13,7 @@
         "MaxSendBuffLength": 1048576
     },
     "Framework": {
+        "LogLevel": "trace",
         "WorkerThread": 1
     },
     "CustomConfig": "/path/to/config/file"

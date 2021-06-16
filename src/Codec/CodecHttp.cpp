@@ -37,9 +37,8 @@ static size_t HttpProtocolCheck(const UvBuffer &Buffer) {
   return HeaderLength + ContentLength;
 }
 
-static std::string HttpMethodStrings[] = {"GET",     "POST",  "PUT",
-                                          "DELETE",  "HEAD",  "CONNECT",
-                                          "OPTIONS", "TRACE", "PATCH"};
+static std::string HttpMethodStrings[] = {"GET",     "POST",    "PUT",   "DELETE", "HEAD",
+                                          "CONNECT", "OPTIONS", "TRACE", "PATCH"};
 
 size_t CodecHttpRequest::Check(const UvBuffer &Buffer) {
   bool IsHttpMethod = false;

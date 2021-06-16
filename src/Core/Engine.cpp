@@ -2,7 +2,6 @@
 #include "EngineImpl.h"
 
 #include <unistd.h>
-
 #include <cstdlib>
 
 namespace wcbot {
@@ -29,14 +28,11 @@ bool Engine::ParseArguments(int argc, char *argv[]) {
   return true;
 }
 
-const std::string &Engine::GetCustomConfigPath() const {
-  return PImpl->Config.CustomConfig;
-}
+const std::string &Engine::GetCustomConfigPath() const { return PImpl->Config.CustomConfig; }
 
 int Engine::Run() {
   if (!PImpl->Config.ParseOk) {
-    // todo: log
-    fprintf(stderr, "Config not ok\n");
+    LOG_FATAL("Config not ok");
     return EXIT_FAILURE;
   }
   return PImpl->Run();
@@ -46,12 +42,8 @@ bool Engine::Initialize() { return PImpl->Initialize(); }
 
 void Engine::Stop() { raise(SIGINT); }
 
-void Engine::RegisterServerCodec(Codec *CodecPtr) {
-  PImpl->ServerCodecs.push_back(CodecPtr);
-}
+void Engine::RegisterServerCodec(Codec *CodecPtr) { PImpl->ServerCodecs.push_back(CodecPtr); }
 
-void Engine::RegisterClientCodec(Codec *CodecPtr) {
-  PImpl->ClientCodecs.push_back(CodecPtr);
-}
+void Engine::RegisterClientCodec(Codec *CodecPtr) { PImpl->ClientCodecs.push_back(CodecPtr); }
 
 }  // namespace wcbot
