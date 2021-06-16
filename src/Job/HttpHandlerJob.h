@@ -13,10 +13,10 @@ class HttpHandlerJob : public TcpHandlerJob {
   virtual void Do() {
     MemoryBufferPtr MemBuf = new MemoryBuffer;
     MEMBUF_APP(MemBuf, "HTTP/1.1 200 OK\r\nContent-Length:11\r\n\r\nhello world");
-    this->SendData(MemBuf, true);
-    DeleteSelf();
+    this->SendData(MemBuf, TcpHandlerJob::kDisconnect);
+    DeleteThis();
   }
-  void DeleteSelf() {
+  void DeleteThis() {
     delete this;
   }
 

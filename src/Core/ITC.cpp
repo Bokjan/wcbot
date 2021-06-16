@@ -71,14 +71,14 @@ void TcpMainToWorker::Process() {
   // dispatch TCP request
   worker_impl::DispatchTcp(this->Buffer, this->Worker);
   // free memory
-  this->DeleteSelf();
+  this->DeleteThis();
 }
 
 void TcpWorkerToMain::Process() {
   // do uv write
   main_impl::SendTcpToClient(EImpl, Buffer, ConnId, CloseConnection);
   // free memory
-  this->DeleteSelf();
+  this->DeleteThis();
 }
 
 }  // namespace itc

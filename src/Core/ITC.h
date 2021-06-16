@@ -43,7 +43,7 @@ class TcpMainToWorker final : public ItcEvent {
   explicit TcpMainToWorker(TcpMemoryBuffer* Buffer, ThreadContext* Worker)
       : Buffer(Buffer), Worker(Worker) {}
   void Process();
-  void DeleteSelf() { delete this; }
+  void DeleteThis() { delete this; }
 
  private:
   TcpMemoryBuffer* Buffer;
@@ -56,7 +56,7 @@ class TcpWorkerToMain final : public ItcEvent {
       : EImpl(EImpl), Buffer(Buffer), ConnId(ConnId), CloseConnection(false) {}
   void SetCloseConnection() { CloseConnection = true; }
   void Process();
-  void DeleteSelf() { delete this; }
+  void DeleteThis() { delete this; }
 
  private:
   EngineImpl* EImpl;

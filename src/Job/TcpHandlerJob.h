@@ -11,6 +11,7 @@ class TcpHandlerJob : public Job {
       : Job(Worker), ReceiveBuffer(RB) {}
   virtual ~TcpHandlerJob() { delete ReceiveBuffer; }
   virtual void Do() = 0;
+  static constexpr bool kDisconnect = true;
   void SendData(MemoryBufferPtr Buffer, bool CloseConnection = false);
 
  protected:
