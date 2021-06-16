@@ -1,13 +1,22 @@
 #include "WorkerThread.h"
 
 #include "Utility/Logger.h"
+#include "Job/HttpHandlerJob.h"
 
 namespace wcbot {
-namespace workerthread {
+namespace worker_impl {
 
 static void OnItcAsyncSend(uv_async_t *Async) {
   ThreadContext *Self = reinterpret_cast<ThreadContext *>(Async->data);
-  // todo
+  int i;
+  for (i = 0; i < ItcQueue::kMaxBatchCount; ++i) {
+    ItcEvent *Event = Self->MainToWorkerQueue.Dequeue();
+    if (Event == nullptr) {
+      break;
+    }
+    Event->Process();
+  }
+  LOG_TRACE("thread #%d processed %d ITC event(s)", Self->ThreadIndex, i);
 }
 
 static void OnSignalInterrupt(uv_signal_t *Signal, int SigNum) {
@@ -37,5 +46,11 @@ void EntryPoint(void *Argument) {
   AfterLoop(Self);
 }
 
-}  // namespace workerthread
+void DispatchTcp(TcpUvBuffer *Buffer, ThreadContext *Worker) {
+  // todo: http handler
+  Job *NewJob = new HttpHandlerJob(Worker, Buffer);
+  NewJob->Do();
+}
+
+}  // namespace worker_impl
 }  // namespace wcbot

@@ -34,6 +34,7 @@ struct BotConfig {
 };
 
 class ThreadContext;
+class ThreadDispatcher;
 
 class EngineImpl final {
  public:
@@ -45,6 +46,7 @@ class EngineImpl final {
   std::vector<Codec*> ServerCodecs;
   std::vector<Codec*> ClientCodecs;
   std::vector<ThreadContext*> Threads;
+  ThreadDispatcher *Dispatcher;
 
   EngineImpl();
   ~EngineImpl();

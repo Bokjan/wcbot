@@ -1,5 +1,8 @@
 #include "ITC.h"
 
+#include "TcpUvBuffer.h"
+#include "WorkerThread.h"
+
 #include <deque>
 #include <mutex>
 
@@ -60,5 +63,16 @@ void ItcQueue::Clear() {
   std::lock_guard<std::mutex> Lock(PImpl->Mutex);
   PImpl->Queue.clear();
 }
+
+namespace itc {
+
+void TcpMainToWorker::Process() {
+  // dispatch TCP request
+  worker_impl::DispatchTcp(this->Buffer, this->Worker);
+  // free memory
+  this->DeleteSelf();
+}
+
+}  // namespace itc
 
 }  // namespace wcbot

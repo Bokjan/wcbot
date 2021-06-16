@@ -9,15 +9,14 @@
 
 namespace wcbot {
 
-namespace mlcb {
+namespace main_impl {
 static void OnTcpRead(uv_stream_t *Handle, ssize_t NRead, const uv_buf_t *Buffer);
 static void OnTcpClose(uv_handle_t *Handle);
 static void OnNewConnection(uv_stream_t *Handle, int Status);
 static void AllocateBuffer(uv_handle_t *Handle, size_t SuggestedSize, uv_buf_t *Buffer);
 static void OnItcAsyncSend(uv_async_t *Async);
 static void OnSignalInterrupt(uv_signal_t *Signal, int SigNum);
-
-}  // namespace mlcb
+}  // namespace main_impl
 
 #ifdef CHECK_INT_NOT_ZERO_RET
 #undef CHECK_INT_NOT_ZERO_RET
@@ -30,26 +29,6 @@ static void OnSignalInterrupt(uv_signal_t *Signal, int SigNum);
       return Check;               \
     }                             \
   } while (false);
-
-EngineImpl::EngineImpl() : IsFork(true), UvLoop(uv_default_loop()) {}
-
-EngineImpl::~EngineImpl() {
-  // server codec
-  for (auto Ptr : ServerCodecs) {
-    delete Ptr;
-  }
-  ServerCodecs.clear();
-  // client codec
-  for (auto Ptr : ClientCodecs) {
-    delete Ptr;
-  }
-  ClientCodecs.clear();
-  // worker thread
-  for (auto Ptr : Threads) {
-    delete Ptr;
-  }
-  Threads.clear();
-}
 
 static inline bool RapidJsonGetString(const rapidjson::Value &Value, const char *Member,
                                       std::string &Destination) {
@@ -145,6 +124,57 @@ static bool InternalParseConfig(BotConfig &Config, const rapidjson::Document &Js
   return Config.ParseOk;
 }
 
+class ThreadDispatcher {
+ public:
+  explicit ThreadDispatcher(ssize_t Count) : ThreadCount(Count) {}
+  virtual ~ThreadDispatcher() {}
+  virtual ssize_t NextThreadIndex() = 0;
+
+ protected:
+  ssize_t ThreadCount;
+};
+
+class RoundRobinThreadDispatcher final : public ThreadDispatcher {
+ public:
+  explicit RoundRobinThreadDispatcher(ssize_t Count) : ThreadDispatcher(Count), Current(0) {}
+  ~RoundRobinThreadDispatcher() {}
+  ssize_t NextThreadIndex() {
+    ssize_t Ret = Current;
+    ++Current;
+    if (Current == ThreadCount) {
+      Current = 0;
+    }
+    return Ret;
+  }
+
+ private:
+  ssize_t Current;
+};
+
+EngineImpl::EngineImpl() : IsFork(true), UvLoop(uv_default_loop()), Dispatcher(nullptr) {}
+
+EngineImpl::~EngineImpl() {
+  // server codec
+  for (auto Ptr : ServerCodecs) {
+    delete Ptr;
+  }
+  ServerCodecs.clear();
+  // client codec
+  for (auto Ptr : ClientCodecs) {
+    delete Ptr;
+  }
+  ClientCodecs.clear();
+  // worker thread
+  for (auto Ptr : Threads) {
+    delete Ptr;
+  }
+  Threads.clear();
+  // dispatcher
+  if (Dispatcher == nullptr) {
+    delete Dispatcher;
+  }
+}
+
 bool EngineImpl::ParseConfig(const std::string &Path) {
   bool Ret = false;
   do {
@@ -165,7 +195,7 @@ bool EngineImpl::ParseConfig(const std::string &Path) {
 int EngineImpl::Run() {
   // start threads
   for (ThreadContext *Ptr : Threads) {
-    uv_thread_create(&Ptr->UvThread, workerthread::EntryPoint, Ptr);
+    uv_thread_create(&Ptr->UvThread, worker_impl::EntryPoint, Ptr);
   }
   // start server
   uv_tcp_t UvServerTcp;
@@ -176,7 +206,7 @@ int EngineImpl::Run() {
   CHECK_INT_NOT_ZERO_RET(uv_tcp_bind(&UvServerTcp, reinterpret_cast<sockaddr *>(&SockAddr), 0));
   constexpr int kDefaultBacklog = 128;
   CHECK_INT_NOT_ZERO_RET(uv_listen(reinterpret_cast<uv_stream_t *>(&UvServerTcp), kDefaultBacklog,
-                                   mlcb::OnNewConnection));
+                                   main_impl::OnNewConnection));
   UvServerTcp.data = this;  // bind self
   int Ret = uv_run(this->UvLoop, UV_RUN_DEFAULT);
   LOG_TRACE("uv_run ret=%d", Ret);
@@ -192,6 +222,7 @@ bool EngineImpl::Initialize() {
   do {
     BREAK_ON_FALSE(this->InitializeInterThreadCommunication());
     BREAK_ON_FALSE(this->InitializeSignalHandler());
+    this->Dispatcher = new RoundRobinThreadDispatcher(Config.Framework.WorkerThread);
     Ret = true;
   } while (false);
   return Ret;
@@ -201,7 +232,7 @@ bool EngineImpl::InitializeInterThreadCommunication() {
   for (uint32_t i = 0; i < Config.Framework.WorkerThread; ++i) {
     ThreadContext *Worker = new ThreadContext();
     Worker->ThreadIndex = i;
-    uv_async_init(this->UvLoop, &Worker->WorkerToMainAsync, mlcb::OnItcAsyncSend);
+    uv_async_init(this->UvLoop, &Worker->WorkerToMainAsync, main_impl::OnItcAsyncSend);
     Worker->WorkerToMainAsync.data = Worker;
     Threads.push_back(Worker);
   }
@@ -211,16 +242,16 @@ bool EngineImpl::InitializeInterThreadCommunication() {
 bool EngineImpl::InitializeSignalHandler() {
   uv_signal_init(this->UvLoop, &this->UvSignal);
   this->UvSignal.data = this;
-  uv_signal_start(&this->UvSignal, mlcb::OnSignalInterrupt, SIGINT);
+  uv_signal_start(&this->UvSignal, main_impl::OnSignalInterrupt, SIGINT);
   return true;
 }
 
-namespace mlcb {
+namespace main_impl {
 
 static void OnNewConnection(uv_stream_t *Tcp, int Status) {
   LOG_TRACE("enter");
   if (Status < 0) {
-    // todo: error log
+    LOG_ERROR("TCP new connection error, status=%d", Status);
     return;
   }
   EngineImpl *Impl = reinterpret_cast<EngineImpl *>(Tcp->data);
@@ -229,10 +260,10 @@ static void OnNewConnection(uv_stream_t *Tcp, int Status) {
   uv_tcp_init(Impl->UvLoop, &Buffer->ClientTcp);
   Buffer->ClientTcp.data = Buffer;
   if (uv_accept(Tcp, reinterpret_cast<uv_stream_t *>(&Buffer->ClientTcp)) == 0) {
-    uv_read_start(reinterpret_cast<uv_stream_t *>(&Buffer->ClientTcp), mlcb::AllocateBuffer,
-                  mlcb::OnTcpRead);
+    uv_read_start(reinterpret_cast<uv_stream_t *>(&Buffer->ClientTcp), main_impl::AllocateBuffer,
+                  main_impl::OnTcpRead);
   } else {
-    uv_close(reinterpret_cast<uv_handle_t *>(&Buffer->ClientTcp), mlcb::OnTcpClose);
+    uv_close(reinterpret_cast<uv_handle_t *>(&Buffer->ClientTcp), main_impl::OnTcpClose);
   }
 }
 
@@ -257,25 +288,30 @@ static void OnTcpRead(uv_stream_t *Handle, ssize_t NRead, const uv_buf_t *Buffer
   // currently used buffer size is larger than configured value
   if (BufferObj->GetCapacity() > PImpl->Config.Network.MaxRecvBuffLength) {
     LOG_TRACE("enter");
-    uv_close(reinterpret_cast<uv_handle_t *>(Handle), mlcb::OnTcpClose);
+    uv_close(reinterpret_cast<uv_handle_t *>(Handle), main_impl::OnTcpClose);
     return;
   }
   // check size is ok
   if (NRead < 0) {
     if (NRead != UV_EOF) {
-      // todo: log
+      LOG_ERROR("TCP read error, nread=%ld", NRead);
     }
-    LOG_TRACE("enter");
-    uv_close(reinterpret_cast<uv_handle_t *>(Handle), mlcb::OnTcpClose);
+    uv_close(reinterpret_cast<uv_handle_t *>(Handle), main_impl::OnTcpClose);
     return;
   }
   // just increase the buffer length value
   BufferObj->IncreaseLength(NRead);
   // run codec
   for (auto *CodecPtr : PImpl->ServerCodecs) {
-    size_t ValidLength = CodecPtr->Check(*BufferObj);
+    ssize_t ValidLength = CodecPtr->IsComplete(*BufferObj);
     if (ValidLength > 0) {
-      // todo: dispatch
+      // dispatch a `TcpMainToWorker` async ITC event
+      ssize_t Index = PImpl->Dispatcher->NextThreadIndex();
+      ThreadContext *Worker = PImpl->Threads[Index];
+      ItcEvent *Event = new itc::TcpMainToWorker(BufferObj, Worker);
+      Worker->MainToWorkerQueue.Enqueue(Event);
+      // fire an async notification
+      uv_async_send(&Worker->MainToWorkerAsync);
       break;
     }
   }
@@ -283,7 +319,15 @@ static void OnTcpRead(uv_stream_t *Handle, ssize_t NRead, const uv_buf_t *Buffer
 
 static void OnItcAsyncSend(uv_async_t *Async) {
   ThreadContext *Worker = reinterpret_cast<ThreadContext *>(Async->data);
-  // todo
+  int i;
+  for (i = 0; i < ItcQueue::kMaxBatchCount; ++i) {
+    ItcEvent *Event = Worker->WorkerToMainQueue.Dequeue();
+    if (Event == nullptr) {
+      break;
+    }
+    Event->Process();
+  }
+  LOG_TRACE("main thread processed %d ITC event(s) sent from #%d", i, Worker->ThreadIndex);
 }
 
 static void OnSignalInterrupt(uv_signal_t *Signal, int SigNum) {
@@ -292,6 +336,6 @@ static void OnSignalInterrupt(uv_signal_t *Signal, int SigNum) {
   LOG_ALL("SIGINT captured, main thread");
 }
 
-}  // namespace mlcb
+}  // namespace main_impl
 
 }  // namespace wcbot

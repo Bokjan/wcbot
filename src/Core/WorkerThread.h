@@ -18,9 +18,11 @@ public:
   uv_async_t WorkerToMainAsync;
 };
 
-namespace workerthread {
+namespace worker_impl {
 
 void EntryPoint(void *Argument);
+void DispatchTcp(TcpUvBuffer *Buffer, ThreadContext *Worker);
 
 }
+
 }  // namespace wcbot

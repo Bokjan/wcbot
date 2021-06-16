@@ -32,8 +32,9 @@ const char *Logger::GetTimeCString() {
   struct timeval TimeVal;
   gettimeofday(&TimeVal, nullptr);
   struct tm *TM = localtime(&TimeVal.tv_sec);
-  snprintf(Buffer, sizeof(Buffer), "%04d%02d%02d %02d:%02d:%02d.%.6ld", 1900 + TM->tm_year,
-           1 + TM->tm_mon, TM->tm_mday, TM->tm_hour, TM->tm_min, TM->tm_sec, TimeVal.tv_usec);
+  snprintf(Buffer, sizeof(Buffer), "%04d%02d%02d %02d:%02d:%02d.%.6d", 1900 + TM->tm_year,
+           1 + TM->tm_mon, TM->tm_mday, TM->tm_hour, TM->tm_min, TM->tm_sec,
+           static_cast<int>(TimeVal.tv_usec)); // type of `tv_usec` varies on platforms
   return Buffer;
 }
 
