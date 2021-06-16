@@ -22,7 +22,7 @@ class Logger {
   Logger() : CurrentLevel(kWarn) {}
   virtual ~Logger();
   virtual void Log(LogLevel Level, const char *Format, va_list Arguments) = 0;
-  static const char *GetTimeCString();
+  const char *GetTimeCString(LogLevel Level);
   void Log(LogLevel Level, const char *Format, ...);
   bool SetLevel(const std::string &Target);
   bool SetLevel(LogLevel Target) {
@@ -31,6 +31,9 @@ class Logger {
     }
     CurrentLevel = Target;
     return true;
+  }
+  bool WillPrint(LogLevel Level) const {
+    return Level >= CurrentLevel;
   }
 
  private:
@@ -42,9 +45,9 @@ extern Logger *g_Logger;
 extern const char *g_LogLevelCString[];
 }  // namespace logger_internal
 
-#define LOG_LOG_FORWARD(lvl, fmt, args...)                                 \
-  wcbot::logger_internal::g_Logger->Log(                                   \
-      lvl, "[%s] %s (%s:%d) " fmt "\n", ::wcbot::Logger::GetTimeCString(), \
+#define LOG_LOG_FORWARD(lvl, fmt, args...)                                                     \
+  wcbot::logger_internal::g_Logger->Log(                                                       \
+      lvl, "[%s] %s (%s:%d) " fmt "\n", wcbot::logger_internal::g_Logger->GetTimeCString(lvl), \
       ::wcbot::logger_internal::g_LogLevelCString[lvl], __FUNCTION__, __LINE__, ##args)
 #define LOG_TRACE(fmt, args...) LOG_LOG_FORWARD(::wcbot::Logger::kTrace, fmt, ##args)
 #define LOG_DEBUG(fmt, args...) LOG_LOG_FORWARD(::wcbot::Logger::kDebug, fmt, ##args)

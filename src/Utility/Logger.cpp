@@ -17,7 +17,7 @@ const char *g_LogLevelCString[] = {"<OFF>  ", "<TRACE>", "<DEBUG>", "<INFO> ",
 Logger::~Logger() {}
 
 void Logger::Log(LogLevel Level, const char *Format, ...) {
-  if (Level < CurrentLevel) {
+  if (!WillPrint(Level)) {
     return;
   }
   va_list Arguments;
@@ -26,15 +26,18 @@ void Logger::Log(LogLevel Level, const char *Format, ...) {
   va_end(Arguments);
 }
 
-const char *Logger::GetTimeCString() {
+const char *Logger::GetTimeCString(LogLevel Level) {
   constexpr ssize_t kBufferLen = 128;
   thread_local char Buffer[kBufferLen];
+  if (!WillPrint(Level)) {
+    return Buffer;
+  }
   struct timeval TimeVal;
   gettimeofday(&TimeVal, nullptr);
   struct tm *TM = localtime(&TimeVal.tv_sec);
   snprintf(Buffer, sizeof(Buffer), "%04d%02d%02d %02d:%02d:%02d.%.6d", 1900 + TM->tm_year,
            1 + TM->tm_mon, TM->tm_mday, TM->tm_hour, TM->tm_min, TM->tm_sec,
-           static_cast<int>(TimeVal.tv_usec)); // type of `tv_usec` varies on platforms
+           static_cast<int>(TimeVal.tv_usec));  // type of `tv_usec` varies on platforms
   return Buffer;
 }
 
