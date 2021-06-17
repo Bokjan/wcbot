@@ -1,11 +1,12 @@
 #include "EngineImpl.h"
+
+#include <rapidjson/document.h>
+#include <rapidjson/rapidjson.h>
+
 #include "TcpMemoryBuffer.h"
 #include "Utility/Common.h"
 #include "Utility/Logger.h"
 #include "WorkerThread.h"
-
-#include <rapidjson/document.h>
-#include <rapidjson/rapidjson.h>
 
 namespace wcbot {
 
@@ -252,7 +253,7 @@ static void OnNewConnection(uv_stream_t *Tcp, int Status) {
   uint64_t ConnId = Impl->NextTcpConnectionId();
   uv_tcp_t *ClientTcp = new uv_tcp_t;
   Impl->TcpIdToConn[ConnId] = ClientTcp;
-  TcpMemoryBufferPtr Buffer = new TcpMemoryBuffer(ConnId, reinterpret_cast<uv_tcp_t *>(Tcp));
+  TcpMemoryBuffer *Buffer = new TcpMemoryBuffer(ConnId, reinterpret_cast<uv_tcp_t *>(Tcp));
   uv_tcp_init(Impl->UvLoop, ClientTcp);
   ClientTcp->data = Buffer;
   if (uv_accept(Tcp, reinterpret_cast<uv_stream_t *>(ClientTcp)) == 0) {
@@ -265,7 +266,7 @@ static void OnNewConnection(uv_stream_t *Tcp, int Status) {
 
 static void OnTcpClose(uv_handle_t *Handle) {
   LOG_TRACE("enter");
-  TcpMemoryBufferPtr TcpBuf = reinterpret_cast<TcpMemoryBufferPtr>(Handle->data);
+  TcpMemoryBuffer *TcpBuf = reinterpret_cast<TcpMemoryBuffer *>(Handle->data);
   EngineImpl *PImpl = reinterpret_cast<EngineImpl *>(TcpBuf->ServerTcp->data);
   do {
     auto FindConn = PImpl->TcpIdToConn.find(TcpBuf->ClientTcpId);
@@ -275,12 +276,12 @@ static void OnTcpClose(uv_handle_t *Handle) {
     PImpl->TcpIdToConn.erase(FindConn);
   } while (false);
   delete TcpBuf;
-  delete reinterpret_cast<uv_tcp_t*>(Handle);
+  delete reinterpret_cast<uv_tcp_t *>(Handle);
 }
 
 static void AllocateBuffer(uv_handle_t *Handle, size_t SuggestedSize, uv_buf_t *Buffer) {
   // LOG_TRACE("enter");
-  TcpMemoryBufferPtr MemBuf = reinterpret_cast<TcpMemoryBufferPtr>(Handle->data);
+  TcpMemoryBuffer *MemBuf = reinterpret_cast<TcpMemoryBuffer *>(Handle->data);
   MemBuf->Allocate(SuggestedSize);
   Buffer->base = MemBuf->GetCurrent();
   Buffer->len = SuggestedSize;
@@ -288,7 +289,7 @@ static void AllocateBuffer(uv_handle_t *Handle, size_t SuggestedSize, uv_buf_t *
 
 static void OnTcpRead(uv_stream_t *Handle, ssize_t NRead, const uv_buf_t *Buffer) {
   LOG_TRACE("enter, nread=%ld", NRead);
-  TcpMemoryBufferPtr MemBuf = reinterpret_cast<TcpMemoryBufferPtr>(Handle->data);
+  TcpMemoryBuffer *MemBuf = reinterpret_cast<TcpMemoryBuffer *>(Handle->data);
   EngineImpl *PImpl = reinterpret_cast<EngineImpl *>(MemBuf->ServerTcp->data);
   // currently used buffer size is larger than configured value
   if (MemBuf->GetCapacity() > PImpl->Config.Network.MaxRecvBuffLength) {
@@ -311,7 +312,7 @@ static void OnTcpRead(uv_stream_t *Handle, ssize_t NRead, const uv_buf_t *Buffer
     ssize_t ValidLength = CodecPtr->IsComplete(*MemBuf);
     if (ValidLength > 0) {
       // create a new buf for this conn, to receive more pkgs
-      TcpMemoryBufferPtr NewBuf = new TcpMemoryBuffer(MemBuf->ClientTcpId, MemBuf->ServerTcp);
+      TcpMemoryBuffer *NewBuf = new TcpMemoryBuffer(MemBuf->ClientTcpId, MemBuf->ServerTcp);
       NewBuf->Append(MemBuf->GetBase() + ValidLength, MemBuf->GetLength() - ValidLength);
       Handle->data = NewBuf;
       // dispatch a `TcpMainToWorker` async ITC event

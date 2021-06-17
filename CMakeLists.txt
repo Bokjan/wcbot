@@ -14,13 +14,13 @@ ENDIF()
 
 LINK_LIBRARIES(pthread openssl uv)
 
-SET(COMP_FILES  src/Core/EngineImpl.cpp src/Core/Engine.cpp src/Codec/CodecHttp.cpp
-                src/Core/MemoryBuffer.cpp src/Core/ITC.cpp src/Core/WorkerThread.cpp
-                src/Job/TcpHandlerJob.cpp
-                src/Utility/Common.cpp src/Utility/Logger.cpp)
-# SET(COMP_FILES ${COMP_FILES} "../ThirdParty/md5/src/md5.cpp")
-# SET(COMP_FILES ${COMP_FILES} "../ThirdParty/cpp-base64/base64.cpp")
-# SET(COMP_FILES ${COMP_FILES} "../ThirdParty/tinyxml2/tinyxml2.cpp")
+SET(COMP_FILES  src/Core/EngineImpl.cc src/Core/Engine.cc src/Codec/CodecHttp.cc
+                src/Core/MemoryBuffer.cc src/Core/ITC.cc src/Core/WorkerThread.cc
+                src/Job/TcpHandlerJob.cc
+                src/Utility/Common.cc src/Utility/Logger.cc)
+# SET(COMP_FILES ${COMP_FILES} "../ThirdParty/md5/src/md5.cc")
+# SET(COMP_FILES ${COMP_FILES} "../ThirdParty/cc-base64/base64.cc")
+# SET(COMP_FILES ${COMP_FILES} "../ThirdParty/tinyxml2/tinyxml2.cc")
 
 ADD_LIBRARY(wcbot STATIC ${COMP_FILES})
 TARGET_LINK_LIBRARIES(wcbot ssl crypto uv)

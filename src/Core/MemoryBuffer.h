@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+
 #include <string>
 
 namespace wcbot {
@@ -27,7 +28,6 @@ class MemoryBuffer {
   size_t Length;
   size_t Capacity;
 };
-using MemoryBufferPtr = MemoryBuffer*;
 
 #define MEMBUF_APP(pmb, sl) ((pmb)->Append(sl, sizeof(sl) - 1))
 

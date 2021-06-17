@@ -1,11 +1,11 @@
 #include "ITC.h"
 
+#include <deque>
+#include <mutex>
+
 #include "EngineImpl.h"
 #include "WorkerThread.h"
 #include "TcpMemoryBuffer.h"
-
-#include <deque>
-#include <mutex>
 
 namespace wcbot {
 

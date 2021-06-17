@@ -1,9 +1,9 @@
 #pragma once
 
+#include <string>
+
 #include "Codec/Codec.h"
 #include "Utility/Logger.h"
-
-#include <string>
 
 namespace wcbot {
 

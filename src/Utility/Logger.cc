@@ -1,9 +1,11 @@
 #include "Logger.h"
 
-#include <sys/time.h>
 #include <cstdarg>
 #include <ctime>
+
 #include <map>
+
+#include <sys/time.h>
 
 namespace wcbot {
 

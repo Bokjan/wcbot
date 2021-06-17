@@ -1,9 +1,11 @@
 #include "MemoryBuffer.h"
-#include "Utility/Logger.h"
 
 #include <cstdlib>
 #include <cstring>
+
 #include <algorithm>
+
+#include "Utility/Logger.h"
 
 namespace wcbot {
 

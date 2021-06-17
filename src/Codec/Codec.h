@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Core/MemoryBuffer.h"
-
 #include <sys/types.h>
+
+#include "Core/MemoryBuffer.h"
 
 namespace wcbot {
 
@@ -17,6 +17,5 @@ class Codec {
   virtual ssize_t IsComplete(const MemoryBuffer &Buffer) = 0;
   virtual ~Codec() = default;
 };
-using CodecPtr = Codec *;
 
 }  // namespace wcbot
