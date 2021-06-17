@@ -10,7 +10,6 @@ class TcpHandlerJob : public Job {
   explicit TcpHandlerJob(ThreadContext* Worker, TcpMemoryBuffer* RB)
       : Job(Worker), ReceiveBuffer(RB) {}
   virtual ~TcpHandlerJob() { delete ReceiveBuffer; }
-  virtual void Do() = 0;
   static constexpr bool kDisconnect = true;
   void SendData(MemoryBuffer* Buffer, bool CloseConnection = false);
 

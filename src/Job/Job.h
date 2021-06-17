@@ -10,7 +10,8 @@ class Job {
  public:
   explicit Job(ThreadContext *Worker) : Worker(Worker), Parent(nullptr) {}
   virtual ~Job() = default;
-  virtual void Do() = 0;
+  virtual void Do(Job *Trigger = nullptr) = 0;
+  virtual void OnTimeout() = 0;
 
  public:
   ThreadContext *Worker;

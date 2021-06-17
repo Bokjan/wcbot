@@ -236,7 +236,6 @@ bool EngineImpl::InitializeWorkerThreads() {
     Worker->EImpl = this;
     uv_async_init(this->UvLoop, &Worker->WorkerToMainAsync, main_impl::OnItcAsyncSend);
     Worker->WorkerToMainAsync.data = Worker;
-    Worker->InitializeCurlMulti();
     Threads.push_back(Worker);
   }
   return true;
