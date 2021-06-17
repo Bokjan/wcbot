@@ -16,7 +16,7 @@ LINK_LIBRARIES(pthread openssl uv)
 
 SET(COMP_FILES  src/Core/EngineImpl.cc src/Core/Engine.cc src/Codec/CodecHttp.cc
                 src/Core/MemoryBuffer.cc src/Core/ITC.cc src/Core/WorkerThread.cc
-                src/Job/TcpHandlerJob.cc src/Job/DelayQueue.cc
+                src/Job/Job.cc src/Job/TcpHandlerJob.cc src/Job/DelayQueue.cc
                 src/Utility/Common.cc src/Utility/Logger.cc)
 # SET(COMP_FILES ${COMP_FILES} "../ThirdParty/md5/src/md5.cc")
 # SET(COMP_FILES ${COMP_FILES} "../ThirdParty/cc-base64/base64.cc")
