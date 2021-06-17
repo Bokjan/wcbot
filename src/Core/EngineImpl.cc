@@ -1,5 +1,6 @@
 #include "EngineImpl.h"
 
+#include <curl/curl.h>
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
 
@@ -120,7 +121,7 @@ static bool InternalParseConfig(BotConfig &Config, const rapidjson::Document &Js
 class ThreadDispatcher {
  public:
   explicit ThreadDispatcher(ssize_t Count) : ThreadCount(Count) {}
-  virtual ~ThreadDispatcher() {}
+  virtual ~ThreadDispatcher() = default;
   virtual ssize_t NextThreadIndex() = 0;
 
  protected:
@@ -130,7 +131,7 @@ class ThreadDispatcher {
 class RoundRobinThreadDispatcher final : public ThreadDispatcher {
  public:
   explicit RoundRobinThreadDispatcher(ssize_t Count) : ThreadDispatcher(Count), Current(0) {}
-  ~RoundRobinThreadDispatcher() {}
+  ~RoundRobinThreadDispatcher() = default;
   ssize_t NextThreadIndex() {
     ssize_t Ret = Current;
     ++Current;
@@ -147,27 +148,7 @@ class RoundRobinThreadDispatcher final : public ThreadDispatcher {
 EngineImpl::EngineImpl()
     : IsFork(true), UvLoop(uv_default_loop()), Dispatcher(nullptr), TcpConnectionId(0) {}
 
-EngineImpl::~EngineImpl() {
-  // server codec
-  for (auto Ptr : ServerCodecs) {
-    delete Ptr;
-  }
-  ServerCodecs.clear();
-  // client codec
-  for (auto Ptr : ClientCodecs) {
-    delete Ptr;
-  }
-  ClientCodecs.clear();
-  // worker thread
-  for (auto Ptr : Threads) {
-    delete Ptr;
-  }
-  Threads.clear();
-  // dispatcher
-  if (Dispatcher == nullptr) {
-    delete Dispatcher;
-  }
-}
+EngineImpl::~EngineImpl() { this->Finalize(); }
 
 bool EngineImpl::ParseConfig(const std::string &Path) {
   bool Ret = false;
@@ -214,21 +195,48 @@ int EngineImpl::Run() {
 bool EngineImpl::Initialize() {
   bool Ret = false;
   do {
-    BREAK_ON_FALSE(this->InitializeInterThreadCommunication());
+    BREAK_ON_FALSE(this->InitializeWorkerThreads());
     BREAK_ON_FALSE(this->InitializeSignalHandler());
     this->Dispatcher = new RoundRobinThreadDispatcher(Config.Framework.WorkerThread);
+    if (curl_global_init(CURL_GLOBAL_ALL)) {
+      LOG_ERROR("%s", "Could not init cURL");
+      break;
+    }
     Ret = true;
   } while (false);
   return Ret;
 }
 
-bool EngineImpl::InitializeInterThreadCommunication() {
+void EngineImpl::Finalize() {
+  // server codec
+  for (auto Ptr : ServerCodecs) {
+    delete Ptr;
+  }
+  ServerCodecs.clear();
+  // client codec
+  for (auto Ptr : ClientCodecs) {
+    delete Ptr;
+  }
+  ClientCodecs.clear();
+  // worker thread
+  for (auto Ptr : Threads) {
+    delete Ptr;
+  }
+  Threads.clear();
+  // dispatcher
+  if (Dispatcher == nullptr) {
+    delete Dispatcher;
+  }
+}
+
+bool EngineImpl::InitializeWorkerThreads() {
   for (uint32_t i = 0; i < Config.Framework.WorkerThread; ++i) {
     ThreadContext *Worker = new ThreadContext();
     Worker->ThreadIndex = i;
     Worker->EImpl = this;
     uv_async_init(this->UvLoop, &Worker->WorkerToMainAsync, main_impl::OnItcAsyncSend);
     Worker->WorkerToMainAsync.data = Worker;
+    Worker->InitializeCurlMulti();
     Threads.push_back(Worker);
   }
   return true;

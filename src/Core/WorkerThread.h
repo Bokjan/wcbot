@@ -19,9 +19,17 @@ class ThreadContext final {
   ItcQueue WorkerToMainQueue;
   uv_async_t MainToWorkerAsync;
   uv_async_t WorkerToMainAsync;
+  void *CurlMultiHandle;
+  uv_timer_t UvCurlTimer;
 
   void NotifyMain();
   void NotifyWorker();
+
+  void Finalize();
+
+ private:
+  void InitializeCurlMulti();
+  friend class EngineImpl;
 };
 
 namespace worker_impl {

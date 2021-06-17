@@ -9,7 +9,7 @@ class ThreadContext;
 class Job {
  public:
   explicit Job(ThreadContext *Worker) : Worker(Worker), Parent(nullptr) {}
-  virtual ~Job() {}
+  virtual ~Job() = default;
   virtual void Do() = 0;
 
  public:

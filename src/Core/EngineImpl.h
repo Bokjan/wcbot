@@ -61,8 +61,9 @@ class EngineImpl final {
   uint64_t NextTcpConnectionId() { return TcpConnectionId++; }
 
  private:
-  bool InitializeInterThreadCommunication();
+  bool InitializeWorkerThreads();
   bool InitializeSignalHandler();
+  void Finalize();
 };
 
 namespace main_impl {
