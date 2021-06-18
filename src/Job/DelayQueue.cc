@@ -54,6 +54,9 @@ bool DelayQueue::Join(Job *J, int MS) {
 }
 
 Job *DelayQueue::Dequeue(std::chrono::time_point<std::chrono::steady_clock> Now) {
+  if (PImpl->List.empty()) {
+    return nullptr;
+  }
   if (PImpl->List.front().TimeoutAt > Now) {
     return nullptr;
   }

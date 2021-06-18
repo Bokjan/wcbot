@@ -9,6 +9,9 @@
 namespace wcbot {
 
 namespace worker_impl {
+static void OnTickTimer(uv_timer_t *Timer);
+static void OnItcAsyncSend(uv_async_t *Async);
+static void OnSignalInterrupt(uv_signal_t *Signal, int SigNum);
 namespace curl {
 static int SocketFunction(CURL *Easy, curl_socket_t CurlSocket, int Action, void *UserPtr,
                           void *ContextPtr);
@@ -28,7 +31,31 @@ void ThreadContext::InitializeCurlMulti() {
   curl_multi_setopt(CurlMultiHandle, CURLMOPT_TIMERDATA, this);
 }
 
-void ThreadContext::Finalize() { curl_multi_cleanup(CurlMultiHandle); }
+void ThreadContext::Initialize() {
+  // loop
+  uv_loop_init(&UvLoop);
+  // tick timer
+  uv_timer_init(&UvLoop, &UvTickTimer);
+  UvTickTimer.data = this;
+  constexpr uint64_t kTickRepeat = 100;  // milliseconds
+  uv_timer_start(&UvTickTimer, worker_impl::OnTickTimer, 0, kTickRepeat);
+  // async
+  uv_async_init(&UvLoop, &MainToWorkerAsync, worker_impl::OnItcAsyncSend);
+  MainToWorkerAsync.data = this;
+  // signal
+  uv_signal_init(&UvLoop, &UvSignal);
+  UvSignal.data = this;
+  uv_signal_start(&UvSignal, worker_impl::OnSignalInterrupt, SIGINT);
+  // cURL
+  InitializeCurlMulti();
+  uv_timer_init(&UvLoop, &UvCurlTimer);
+  UvCurlTimer.data = this;
+}
+
+void ThreadContext::Finalize() {
+  uv_loop_close(&UvLoop);
+  curl_multi_cleanup(CurlMultiHandle);
+}
 
 void ThreadContext::DealDealyQueue() {
   const auto Now = std::chrono::steady_clock::now();
@@ -38,7 +65,10 @@ void ThreadContext::DealDealyQueue() {
   }
 }
 
-void ThreadContext::DoIdle() { this->DealDealyQueue(); }
+void ThreadContext::Tick() {
+  // delay queue
+  this->DealDealyQueue();
+}
 
 namespace worker_impl {
 
@@ -61,41 +91,16 @@ static void OnSignalInterrupt(uv_signal_t *Signal, int SigNum) {
   LOG_ALL("SIGINT captured, worker thread %02d", Self->ThreadIndex);
 }
 
-static void OnIdle(uv_idle_t *Idle) {
-  ThreadContext *Worker = reinterpret_cast<ThreadContext *>(Idle->data);
-  Worker->DoIdle();
-}
-
-static void BeforeLoop(ThreadContext *Self) {
-  // loop
-  uv_loop_init(&Self->UvLoop);
-  // idle
-  uv_idle_init(&Self->UvLoop, &Self->UvIdle);
-  Self->UvIdle.data = Self;
-  uv_idle_start(&Self->UvIdle, OnIdle);
-  // async
-  uv_async_init(&Self->UvLoop, &Self->MainToWorkerAsync, OnItcAsyncSend);
-  Self->MainToWorkerAsync.data = Self;
-  // signal
-  uv_signal_init(&Self->UvLoop, &Self->UvSignal);
-  Self->UvSignal.data = Self;
-  uv_signal_start(&Self->UvSignal, OnSignalInterrupt, SIGINT);
-  // cURL
-  Self->InitializeCurlMulti();
-  uv_timer_init(&Self->UvLoop, &Self->UvCurlTimer);
-  Self->UvCurlTimer.data = Self;
-}
-
-static void AfterLoop(ThreadContext *Self) {
-  uv_loop_close(&Self->UvLoop);
-  Self->Finalize();
+static void OnTickTimer(uv_timer_t *Timer) {
+  ThreadContext *Worker = reinterpret_cast<ThreadContext *>(Timer->data);
+  Worker->Tick();
 }
 
 void EntryPoint(void *Argument) {
   ThreadContext *Self = reinterpret_cast<ThreadContext *>(Argument);
-  BeforeLoop(Self);
+  Self->Initialize();
   uv_run(&Self->UvLoop, UV_RUN_DEFAULT);
-  AfterLoop(Self);
+  Self->Finalize();
 }
 
 void DispatchTcp(TcpMemoryBuffer *Buffer, ThreadContext *Worker) {
