@@ -17,6 +17,7 @@ class MemoryBuffer {
   void Append(const void* Source, size_t Length);
   void Append(const std::string& Str) { this->Append(Str.data(), Str.length()); }
   void SwapMemory(MemoryBuffer& Other);
+  void SetNullTerminated();
   char* GetBase() const { return BasePtr; }
   char* GetCurrent() const { return BasePtr + Length; }
   size_t GetLength() const { return Length; }

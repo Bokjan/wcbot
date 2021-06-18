@@ -2,6 +2,7 @@
 
 #include <curl/curl.h>
 
+#include "Job/HttpClientJob.h"
 #include "Job/HttpHandlerJob.h"  // todo: remove
 #include "Job/Job.h"
 #include "Utility/Logger.h"
@@ -9,6 +10,7 @@
 namespace wcbot {
 
 namespace worker_impl {
+static thread_local ThreadContext *Self = nullptr;
 static void OnTickTimer(uv_timer_t *Timer);
 static void OnItcAsyncSend(uv_async_t *Async);
 static void OnSignalInterrupt(uv_signal_t *Signal, int SigNum);
@@ -32,6 +34,8 @@ void ThreadContext::InitializeCurlMulti() {
 }
 
 void ThreadContext::Initialize() {
+  // thread_local global pointer
+  worker_impl::Self = this;
   // loop
   uv_loop_init(&UvLoop);
   // tick timer
@@ -61,7 +65,7 @@ void ThreadContext::DealDealyQueue() {
   const auto Now = std::chrono::steady_clock::now();
   Job *JobPtr;
   while ((JobPtr = DQueue.Dequeue(Now)) != nullptr) {
-    JobPtr->OnTimeout();
+    JobPtr->OnTimeout(nullptr);
   }
 }
 
@@ -131,16 +135,25 @@ static UvCurlContext *CreateCurlContext(ThreadContext *Worker, curl_socket_t Fd)
 
 static void CurlMultiStatusCheck(CURLM *Multi) {
   int Pending;
-  char *DoneUrl;
   CURLMsg *Message;
   while ((Message = curl_multi_info_read(Multi, &Pending)) != nullptr) {
     switch (Message->msg) {
-      case CURLMSG_DONE:
-        // todo: turn back to `Job`
-        // curl_easy_getinfo(Message->easy_handle, CURLINFO_EFFECTIVE_URL, &DoneUrl);
+      case CURLMSG_DONE: {
+        long ResponseCode;
+        HttpClientJob::CurlPrivate PrivateUnion;
+        curl_easy_getinfo(Message->easy_handle, CURLINFO_RESPONSE_CODE, &ResponseCode);
+        curl_easy_getinfo(Message->easy_handle, CURLINFO_PRIVATE, &PrivateUnion.Ptr);
+        Job *J = Self->DQueue.Remove(PrivateUnion.JobId);
+        // LOG_TRACE("code=%d, id=%u", ResponseCode, PrivateUnion.JobId);
+        if (J != nullptr) {
+          HttpClientJob *HCJ = dynamic_cast<HttpClientJob *>(J);
+          HCJ->Response.StatusCode = static_cast<int>(ResponseCode);
+          HCJ->Do();
+        }
         curl_multi_remove_handle(Multi, Message->easy_handle);
         curl_easy_cleanup(Message->easy_handle);
         break;
+      }
       default:
         LOG_ERROR("invalid msg type %d, abort", Message->msg);
         raise(SIGINT);
@@ -177,7 +190,7 @@ static void UvCurlOnClose(uv_handle_t *Handle) {
 static int SocketFunction(CURL *Easy, curl_socket_t CurlSocket, int Action, void *UserPtr,
                           void *ContextPtr) {
   ThreadContext *Worker = reinterpret_cast<ThreadContext *>(UserPtr);
-  UvCurlContext *CurlContext;
+  UvCurlContext *CurlContext = reinterpret_cast<UvCurlContext *>(ContextPtr);
   // make sure thar `CurlContext` is valid for IN and OUT
   if (Action == CURL_POLL_IN || Action == CURL_POLL_OUT) {
     if (ContextPtr != nullptr) {
@@ -193,11 +206,12 @@ static int SocketFunction(CURL *Easy, curl_socket_t CurlSocket, int Action, void
       uv_poll_start(&CurlContext->UvPoll, UV_READABLE, UvCurlOnPoll);
       break;
     case CURL_POLL_OUT:
+      LOG_TRACE("");
       uv_poll_start(&CurlContext->UvPoll, UV_WRITABLE, UvCurlOnPoll);
       break;
     case CURL_POLL_REMOVE:
       // caution, `ContextPtr` may be nullptr here
-      if (ContextPtr != nullptr) {
+      if (CurlContext != nullptr) {
         uv_poll_stop(&CurlContext->UvPoll);
         uv_close(reinterpret_cast<uv_handle_t *>(&CurlContext->UvPoll), UvCurlOnClose);
         curl_multi_assign(Worker->CurlMultiHandle, CurlSocket, nullptr);
@@ -219,11 +233,12 @@ static void UvCurlTimerOnTimeOut(uv_timer_t *Timer) {
 }
 
 static void TimerFunction(CURLM *CurlMulti, long TimeoutMS, void *UserPtr) {
+  // LOG_DEBUG("TimeoutMS=%ld", TimeoutMS);
   // get thread context
   ThreadContext *Worker = reinterpret_cast<ThreadContext *>(UserPtr);
-  // don't make this timer invoked immediately
-  if (TimeoutMS <= 0) {
-    TimeoutMS = 1;
+  // -1 means stop
+  if (TimeoutMS == -1) {
+    uv_timer_stop(&Worker->UvCurlTimer);
   }
   // call uv
   uv_timer_start(&Worker->UvCurlTimer, UvCurlTimerOnTimeOut, TimeoutMS, 0);

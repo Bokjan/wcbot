@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include <vector>
 
 namespace wcbot {
@@ -11,15 +13,20 @@ class Job {
   explicit Job(ThreadContext *Worker) : Worker(Worker), Parent(nullptr) {}
   virtual ~Job();
   virtual void Do(Job *Trigger = nullptr) = 0;
-  virtual void OnTimeout() = 0;
+  virtual void OnTimeout(Job *Trigger) = 0;
+  void SetParent(Job *P) { Parent = P; }
   void ResetParent() { Parent = nullptr; }
   void RemoveChild(Job *J);
-  Job* SafeParent();
+  Job *SafeParent();
+  uint32_t GetJobId() { return JobId; }
+  void SetJobId(uint32_t Id) { JobId = Id; }
+  void JoinDelayQueue(int TimeoutMS);
 
  public:
   ThreadContext *Worker;
 
  protected:
+  uint32_t JobId;
   Job *Parent;
   std::vector<Job *> Children;
 };

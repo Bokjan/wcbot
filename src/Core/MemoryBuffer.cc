@@ -41,7 +41,7 @@ void MemoryBuffer::IncreaseLength(size_t Size) {
     return;
   }
   this->Length += Size;
-  this->BasePtr[this->Length] = '\0';
+  this->SetNullTerminated();
 }
 
 void MemoryBuffer::Append(const void *Source, size_t Length) {
@@ -56,6 +56,13 @@ void MemoryBuffer::SwapMemory(MemoryBuffer& Other) {
   std::swap(BasePtr, Other.BasePtr);
   std::swap(Length, Other.Length);
   std::swap(Capacity, Other.Capacity);
+}
+
+void MemoryBuffer::SetNullTerminated() {
+  char Zero[0];
+  Zero[0] = '\0';
+  this->Append(Zero, 1);
+  --this->Length;
 }
 
 }  // namespace wcbot

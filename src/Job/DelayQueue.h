@@ -11,8 +11,8 @@ class DelayQueue {
  public:
   DelayQueue();
   ~DelayQueue();
-  bool Join(Job* J, int Millisecond);
-  bool Remove(Job* J);
+  void Join(Job* J, int Millisecond);
+  Job* Remove(uint32_t Id);
   Job* Dequeue(std::chrono::time_point<std::chrono::steady_clock> Now);
 
  protected:
