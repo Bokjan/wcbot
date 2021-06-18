@@ -13,14 +13,14 @@ class HttpHandlerJob : public TcpHandlerJob {
   virtual void Do(Job* Trigger = nullptr) override {
     if (Trigger == nullptr) {
       HCJ = new HttpClientJob(this);
-      HCJ->Request.SetUrl("http://www.baidu.com");
+      HCJ->Request.SetUrl("https://www.baidu.com");
       HCJ->DoRequest(5000);
     } else {
       LOG_DEBUG("code=%d", HCJ->Response.StatusCode);
       for (const auto& KV : HCJ->Response.Headers) {
         LOG_DEBUG("%s: %s", KV.first.c_str(), KV.second.c_str());
       }
-      MemoryBuffer* MemBuf = new MemoryBuffer;
+      MemoryBuffer* MemBuf = MemoryBuffer::Create();
       MEMBUF_APP(MemBuf, "HTTP/1.1 200 OK\r\nContent-Length:11\r\n\r\nhello world");
       this->SendData(MemBuf, TcpHandlerJob::kDisconnect);
       DeleteThis();

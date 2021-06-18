@@ -1,4 +1,4 @@
-#include "CodecHttp.h"
+#include "HttpCodec.h"
 
 #include <cstdio>
 #include <cstring>
@@ -41,7 +41,7 @@ static ssize_t HttpProtocolCheck(const MemoryBuffer &Buffer) {
 static std::string HttpMethodStrings[] = {"GET",     "POST",    "PUT",   "DELETE", "HEAD",
                                           "CONNECT", "OPTIONS", "TRACE", "PATCH"};
 
-ssize_t CodecHttpRequest::IsComplete(const MemoryBuffer &Buffer) {
+ssize_t HttpRequestCodec::IsComplete(const MemoryBuffer &Buffer) {
   bool IsHttpMethod = false;
   for (const auto &Str : HttpMethodStrings) {
     if (strncmp(Str.c_str(), Buffer.GetBase(), Str.length()) == 0) {
@@ -55,7 +55,7 @@ ssize_t CodecHttpRequest::IsComplete(const MemoryBuffer &Buffer) {
   return HttpProtocolCheck(Buffer);
 }
 
-ssize_t CodecHttpResponse::IsComplete(const MemoryBuffer &Buffer) {
+ssize_t HttpResponseCodec::IsComplete(const MemoryBuffer &Buffer) {
   if (strncmp("HTTP/1", Buffer.GetBase(), sizeof("HTTP/1") - 1) != 0) {
     return 0;
   }

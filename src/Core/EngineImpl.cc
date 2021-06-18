@@ -4,6 +4,7 @@
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
 
+#include "Codec/HttpCodec.h"
 #include "TcpMemoryBuffer.h"
 #include "Utility/Common.h"
 #include "Utility/Logger.h"
@@ -192,9 +193,15 @@ int EngineImpl::Run() {
   return Ret;
 }
 
+void EngineImpl::RegisterGlobals() {
+  // server codec
+  ServerCodecs.push_back(new HttpRequestCodec());
+}
+
 bool EngineImpl::Initialize() {
   bool Ret = false;
   do {
+    this->RegisterGlobals();
     BREAK_ON_FALSE(this->InitializeWorkerThreads());
     BREAK_ON_FALSE(this->InitializeSignalHandler());
     this->Dispatcher = new RoundRobinThreadDispatcher(Config.Framework.WorkerThread);

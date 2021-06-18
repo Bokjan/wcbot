@@ -4,12 +4,12 @@
 
 namespace wcbot {
 
-class CodecHttpRequest : public Codec {
+class HttpRequestCodec : public Codec {
  public:
   virtual ssize_t IsComplete(const MemoryBuffer &Buffer);
 };
 
-class CodecHttpResponse : public Codec {
+class HttpResponseCodec : public Codec {
  public:
   virtual ssize_t IsComplete(const MemoryBuffer &Buffer);
 };

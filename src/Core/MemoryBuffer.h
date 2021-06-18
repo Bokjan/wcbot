@@ -10,6 +10,10 @@ class MemoryBuffer {
  public:
   MemoryBuffer();
   ~MemoryBuffer();
+  MemoryBuffer(const MemoryBuffer&) = delete;
+  MemoryBuffer(const MemoryBuffer&&) = delete;
+  static MemoryBuffer* Create() { return new MemoryBuffer; }
+  void Destroy() { delete this; }
 
   void DoubleCapacity();
   void Allocate(size_t SuggestedLength);

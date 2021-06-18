@@ -54,6 +54,8 @@ class EngineImpl final {
 
   EngineImpl();
   ~EngineImpl();
+  EngineImpl(const EngineImpl&) = delete;
+  EngineImpl(const EngineImpl&&) = delete;
 
   int Run();
   bool ParseConfig(const std::string& Path);
@@ -61,6 +63,7 @@ class EngineImpl final {
   uint64_t NextTcpConnectionId() { return TcpConnectionId++; }
 
  private:
+  void RegisterGlobals();
   bool InitializeWorkerThreads();
   bool InitializeSignalHandler();
   void Finalize();
