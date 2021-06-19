@@ -323,7 +323,7 @@ static void OnTcpRead(uv_stream_t *Handle, ssize_t NRead, const uv_buf_t *Buffer
   MemBuf->IncreaseLength(NRead);
   // run codec
   for (auto *CodecPtr : PImpl->ServerCodecs) {
-    ssize_t ValidLength = CodecPtr->IsComplete(*MemBuf);
+    ssize_t ValidLength = CodecPtr->IsComplete(MemBuf);
     if (ValidLength > 0) {
       // create a new buf for this conn, to receive more pkgs
       TcpMemoryBuffer *NewBuf = new TcpMemoryBuffer(MemBuf->ClientTcpId, MemBuf->ServerTcp);
@@ -349,7 +349,7 @@ static void OnItcAsyncSend(uv_async_t *Async) {
     if (Event == nullptr) {
       break;
     }
-    Event->Process();
+    Event->Process();  // event frees self on finish
   }
   LOG_TRACE("main thread processed %d ITC event(s) sent from #%d", i, Worker->ThreadIndex);
 }

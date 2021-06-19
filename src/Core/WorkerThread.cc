@@ -3,7 +3,7 @@
 #include <curl/curl.h>
 
 #include "Job/HttpClientJob.h"
-#include "Job/HttpHandlerJob.h"  // todo: remove
+#include "Job/HttpHandlerJob.h"
 #include "Job/Job.h"
 #include "Utility/Logger.h"
 
@@ -84,7 +84,7 @@ static void OnItcAsyncSend(uv_async_t *Async) {
     if (Event == nullptr) {
       break;
     }
-    Event->Process();
+    Event->Process();  // event frees self on finish
   }
   LOG_TRACE("thread #%d processed %d ITC event(s)", Self->ThreadIndex, i);
 }
@@ -108,7 +108,7 @@ void EntryPoint(void *Argument) {
 }
 
 void DispatchTcp(TcpMemoryBuffer *Buffer, ThreadContext *Worker) {
-  // todo: http handler
+  // there's only one possible handler
   Job *NewJob = new HttpHandlerJob(Worker, Buffer);
   NewJob->Do();
 }

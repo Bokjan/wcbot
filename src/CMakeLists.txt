@@ -11,10 +11,10 @@ ENDIF()
 
 LINK_LIBRARIES(pthread openssl uv)
 
-SET(COMP_FILES  Core/EngineImpl.cc Core/Engine.cc Job/DelayQueue.cc
-                Core/MemoryBuffer.cc Core/ITC.cc Core/WorkerThread.cc
-                Job/Job.cc Job/TcpHandlerJob.cc 
-                Job/HttpClientJob.cc
+SET(COMP_FILES  Core/EngineImpl.cc Core/Engine.cc Core/WorkerThread.cc
+                Core/MemoryBuffer.cc Core/ITC.cc 
+                Job/Job.cc Job/TcpHandlerJob.cc Job/DelayQueue.cc
+                Job/HttpClientJob.cc Job/HttpHandlerJob.cc
                 Codec/HttpCodec.cc
                 Utility/Common.cc Utility/Logger.cc Utility/HttpPackage.cc)
 # SET(COMP_FILES ${COMP_FILES} "../ThirdParty/md5/md5.cc")

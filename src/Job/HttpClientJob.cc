@@ -2,8 +2,8 @@
 
 #include <curl/curl.h>
 
-#include "Utility/Logger.h"
 #include "Core/WorkerThread.h"
+#include "Utility/Logger.h"
 
 namespace wcbot {
 
@@ -62,7 +62,7 @@ size_t HeaderFunction(char *Ptr, size_t Size, size_t NItems, void *UserData) {
 }
 }  // namespace http_client_impl
 
-void HttpClientJob::Do(Job* Trigger) {
+void HttpClientJob::Do(Job *Trigger) {
   SafeParent()->Do(this);
   DeleteThis();
 }
@@ -91,10 +91,10 @@ bool HttpClientJob::DoRequest(int TimeoutMS) {
   LOG_DEBUG("url=%s", Request.GetUrl().c_str());
   // body
   switch (Request.Method) {
-    case HttpRequest::HttpMethod::kGet:
+    case HttpRequest::MethodEnum::kGet:
       curl_easy_setopt(CurlEasy, CURLOPT_HTTPGET, 1L);
       break;
-    case HttpRequest::HttpMethod::kPost: {
+    case HttpRequest::MethodEnum::kPost: {
       curl_easy_setopt(CurlEasy, CURLOPT_POST, 1L);
       curl_easy_setopt(CurlEasy, CURLOPT_POSTFIELDS, Request.Body.data());
       curl_easy_setopt(CurlEasy, CURLOPT_POSTFIELDSIZE, Request.Body.size());

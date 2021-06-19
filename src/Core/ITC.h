@@ -28,6 +28,7 @@ class ItcQueue {
 
 class ItcEvent {
  public:
+  virtual ~ItcEvent() = default;
   virtual void Process() = 0;
 };
 
@@ -42,7 +43,8 @@ class TcpMainToWorker final : public ItcEvent {
  public:
   explicit TcpMainToWorker(TcpMemoryBuffer* Buffer, ThreadContext* Worker)
       : Buffer(Buffer), Worker(Worker) {}
-  void Process();
+  ~TcpMainToWorker() = default;
+  void Process() override;
   void DeleteThis() { delete this; }
 
  private:
@@ -54,8 +56,9 @@ class TcpWorkerToMain final : public ItcEvent {
  public:
   explicit TcpWorkerToMain(EngineImpl* EImpl, MemoryBuffer* Buffer, uint64_t ConnId)
       : EImpl(EImpl), Buffer(Buffer), ConnId(ConnId), CloseConnection(false) {}
+  ~TcpWorkerToMain() = default;
   void SetCloseConnection() { CloseConnection = true; }
-  void Process();
+  void Process() override;
   void DeleteThis() { delete this; }
 
  private:

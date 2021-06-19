@@ -1,10 +1,13 @@
 #include "HttpPackage.h"
 
+#include "Core/MemoryBuffer.h"
+#include "Utility/Common.h"
+
 namespace wcbot {
 
 void HttpRequest::Reset() {
-  Method = HttpMethod::kGet;
-  Protocol = TransferProtocol::kUnknown;
+  Method = MethodEnum::kGet;
+  Protocol = ProtocolEnum::kUnknown;
   Path.clear();
   Path.push_back('/');
   Headers.clear();
@@ -22,18 +25,18 @@ bool HttpRequest::SetUrl(const std::string &Url) {
     do {
       Pos = Url.find("http://");
       if (Pos == 0) {
-        Protocol = TransferProtocol::kHttp;
+        Protocol = ProtocolEnum::kHttp;
         Start = sizeof("http://") - 1;
         break;
       }
       Pos = Url.find("https://");
       if (Pos == 0) {
-        Protocol = TransferProtocol::kHttps;
+        Protocol = ProtocolEnum::kHttps;
         Start = sizeof("https://") - 1;
         break;
       }
     } while (false);
-    if (Protocol == TransferProtocol::kUnknown) {
+    if (Protocol == ProtocolEnum::kUnknown) {
       break;
     }
     // host
@@ -66,10 +69,10 @@ std::string HttpRequest::GetUrl() {
   std::string Url;
   // protocol
   switch (Protocol) {
-    case TransferProtocol::kHttp:
+    case ProtocolEnum::kHttp:
       Url.append("http://");
       break;
-    case TransferProtocol::kHttps:
+    case ProtocolEnum::kHttps:
       Url.append("https://");
       break;
     default:
@@ -85,6 +88,139 @@ std::string HttpRequest::GetUrl() {
     Url.append(QueryString);
   }
   return Url;
+}
+
+bool HttpRequest::Parse(const MemoryBuffer *Data) {
+  return Parse(Data->GetBase(), Data->GetLength());
+}
+
+bool HttpRequest::Parse(const char *Data, size_t Length) {
+  this->Reset();
+  thread_local std::string StrBuf;
+  StrBuf.clear();
+  char *BodyPtr = nullptr;
+  char *Search = nullptr;
+  char *Current = nullptr;
+  // request line
+  do {
+    Search = strnstr(const_cast<char *>(Data), "\r\n", Length);
+    if (Search == nullptr) {
+      return false;
+    }
+    StrBuf.assign(Data + 0, Search - (Data + 0));
+    Method = MethodEnum::kUnknown;
+    if (StrBuf.find("GET ") == 0) {
+      Method = MethodEnum::kGet;
+    } else if (StrBuf.find("HEAD ") == 0) {
+      Method = MethodEnum::kHead;
+    } else if (StrBuf.find("POST ") == 0) {
+      Method = MethodEnum::kPost;
+    } else if (StrBuf.find("PUT ") == 0) {
+      Method = MethodEnum::kPut;
+    } else if (StrBuf.find("DELETE ") == 0) {
+      Method = MethodEnum::kDelete;
+    } else if (StrBuf.find("CONNECT ") == 0) {
+      Method = MethodEnum::kConnect;
+    } else if (StrBuf.find("OPTIONS ") == 0) {
+      Method = MethodEnum::kOptions;
+    } else if (StrBuf.find("TRACE ") == 0) {
+      Method = MethodEnum::kTrace;
+    } else if (StrBuf.find("PATCH ") == 0) {
+      Method = MethodEnum::kPatch;
+    }
+    if (Method == MethodEnum::kUnknown) {
+      return false;
+    }
+    StrBuf = StrBuf.substr(StrBuf.find(' ') + 1);
+    auto SecondSpacePos = StrBuf.find(' ');
+    if (SecondSpacePos == std::string::npos) {
+      return false;
+    }
+    StrBuf = StrBuf.substr(0, SecondSpacePos);
+    auto QuestionMarkPosition = StrBuf.find('?');
+    if (QuestionMarkPosition == std::string::npos) {
+      Path = StrBuf;
+    } else {
+      Path = StrBuf.substr(0, QuestionMarkPosition);
+      QueryString = StrBuf.substr(QuestionMarkPosition + 1);
+    }
+  } while (false);
+
+  // headers
+  do {
+    Current = Search + 2;                                   // 1st header line
+    Search = strnstr(Current, "\r\n\r\n", Data - Current);  // end of header
+    if (Search == nullptr) {
+      return false;
+    }
+    BodyPtr = Search + 4;  // we'll check the body length later
+    auto HeaderEnds = Search + 2;
+    char *LineEnds;
+    while (Current < HeaderEnds &&
+           (LineEnds = strnstr(Current, "\r\n", HeaderEnds - Current)) != nullptr) {
+      do {
+        char *ColonPos;
+        for (ColonPos = Current; ColonPos < LineEnds; ++ColonPos) {
+          if (*ColonPos == ':') {
+            break;
+          }
+        }
+        // not found?
+        if (ColonPos == LineEnds) {
+          break;
+        }
+        // value starts
+        char *ValueStarts = ColonPos + 1;
+        while (*ValueStarts == ' ' && ValueStarts < LineEnds) {
+          ++ValueStarts;
+        }
+        if (ValueStarts > /* no = here*/ LineEnds) {
+          break;
+        }
+        // key starts & ends
+        char *KeyStarts = Current;
+        char *KeyEnds = ColonPos - 1;
+        while (*KeyStarts == ' ' && KeyStarts < ColonPos) {
+          ++KeyStarts;
+        }
+        while (*KeyEnds == ' ' && KeyEnds > Current) {
+          --KeyEnds;
+        }
+        if (KeyStarts >= KeyEnds) {
+          break;
+        }
+        // insert
+        Headers.insert(std::make_pair(std::string(KeyStarts, KeyEnds - KeyStarts + 1),
+                                      std::string(ValueStarts, LineEnds - ValueStarts)));
+      } while (false);
+      // update `Current`
+      Current = LineEnds + 2;
+    }
+  } while (false);
+  // body
+  auto ActualBodyLength = (Data + Length) - BodyPtr;
+  do {
+    if (ActualBodyLength < 0) {
+      return false;
+    }
+    auto MapIt = Headers.find("Content-Length");
+    if (MapIt == Headers.end()) {
+      MapIt = Headers.find("content-length");
+    }
+    if (MapIt == Headers.end()) {
+      break;
+    }
+    uint64_t HeaderContentLength;
+    if (!utility::CStrToUInt64(MapIt->second.c_str(), HeaderContentLength)) {
+      break;
+    }
+    if (ActualBodyLength != HeaderContentLength) {
+      return false;
+    }
+    Body.assign(BodyPtr, ActualBodyLength);
+  } while (false);
+
+  return true;
 }
 
 }  // namespace wcbot

@@ -1,5 +1,8 @@
 #include "Common.h"
 
+#include <cstdio>
+#include <cinttypes>
+
 #include <fstream>
 #include <sstream>
 
@@ -17,6 +20,8 @@ bool ReadFile(const std::string& Path, std::string& ReceiveBuffer) {
   ReceiveBuffer = SSBuffer.str();
   return true;
 }
+
+bool CStrToUInt64(const char* CStr, uint64_t& Out) { return sscanf(CStr, "%" PRIu64, &Out) == 1; }
 
 }  // namespace utility
 }  // namespace wcbot
