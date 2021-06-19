@@ -2,7 +2,13 @@
 
 namespace wcbot {
 
-void HttpHandlerJob::OnTimeout(Job* Trigger) { DeleteThis(); }
+HttpHandlerJob::HttpHandlerJob(ThreadContext* Worker, TcpMemoryBuffer* RB)
+    : TcpHandlerJob(Worker, RB), State(StateEnum::kStart) {}
+
+void HttpHandlerJob::OnTimeout(Job* Trigger) {
+  this->Response504GatewayTimeout();
+  DeleteThis();
+}
 
 void HttpHandlerJob::Do(Job* Trigger) {
   switch (State) {
@@ -31,21 +37,32 @@ void HttpHandlerJob::DoStart() {
 void HttpHandlerJob::DoFinish() { DeleteThis(); }
 
 void HttpHandlerJob::DoParseTcpPackage() {
-  // todo: parse pkg
-  State = StateEnum::kDispatchRequest;
+  bool Success = Request.Parse(ReceiveBuffer->GetBase(), ReceiveBuffer->GetLength());
+  if (!Success) {
+    this->Response400BadRequest();
+    State = StateEnum::kFinish;
+  } else {
+    State = StateEnum::kDispatchRequest;
+  }
   this->Do();
 }
 
 void HttpHandlerJob::DoDispatchRequest() {
   // todo
-  this->ResponseBadRequest();
+  this->Response400BadRequest();
   State = StateEnum::kFinish;
   this->Do();
 }
 
-void HttpHandlerJob::ResponseBadRequest() {
-  MemoryBuffer *MB = MemoryBuffer::Create();
+void HttpHandlerJob::Response400BadRequest() {
+  MemoryBuffer* MB = MemoryBuffer::Create();
   MEMBUF_APP(MB, "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n");
+  this->SendData(MB, kDisconnect);
+}
+
+void HttpHandlerJob::Response504GatewayTimeout() {
+  MemoryBuffer* MB = MemoryBuffer::Create();
+  MEMBUF_APP(MB, "HTTP/1.1 504 Gateway Timeout\r\nContent-Length: 0\r\n\r\n");
   this->SendData(MB, kDisconnect);
 }
 

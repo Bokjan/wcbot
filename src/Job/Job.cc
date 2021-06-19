@@ -1,6 +1,6 @@
 #include "Job.h"
 
-#include "Core/WorkerThread.h"
+#include "../Core/WorkerThread.h"
 
 namespace wcbot {
 

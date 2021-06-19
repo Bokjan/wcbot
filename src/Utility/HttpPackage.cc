@@ -1,12 +1,12 @@
 #include "HttpPackage.h"
 
-#include "Core/MemoryBuffer.h"
-#include "Utility/Common.h"
+#include "../Core/MemoryBuffer.h"
+#include "Common.h"
 
 namespace wcbot {
 
 void HttpRequest::Reset() {
-  Method = MethodEnum::kGet;
+  Method = MethodEnum::kUnknown;
   Protocol = ProtocolEnum::kUnknown;
   Path.clear();
   Path.push_back('/');

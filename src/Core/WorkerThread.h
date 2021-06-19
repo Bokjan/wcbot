@@ -6,7 +6,7 @@
 #include <uv.h>
 
 #include "ITC.h"
-#include "Job/DelayQueue.h"
+#include "../Job/DelayQueue.h"
 
 namespace wcbot {
 

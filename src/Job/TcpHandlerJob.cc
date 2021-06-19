@@ -1,9 +1,11 @@
 #include "TcpHandlerJob.h"
 
-#include "Core/ITC.h"
-#include "Core/WorkerThread.h"
+#include "../Core/ITC.h"
+#include "../Core/WorkerThread.h"
 
 namespace wcbot {
+
+TcpHandlerJob::~TcpHandlerJob() { delete ReceiveBuffer; }
 
 void TcpHandlerJob::SendData(MemoryBuffer* Buffer, bool CloseConnection) {
   itc::TcpWorkerToMain* Event =

@@ -4,10 +4,10 @@
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
 
-#include "Codec/HttpCodec.h"
+#include "../Codec/HttpCodec.h"
+#include "../Utility/Common.h"
+#include "../Utility/Logger.h"
 #include "TcpMemoryBuffer.h"
-#include "Utility/Common.h"
-#include "Utility/Logger.h"
 #include "WorkerThread.h"
 
 namespace wcbot {

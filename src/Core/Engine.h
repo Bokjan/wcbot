@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include "Codec/Codec.h"
-#include "Utility/Logger.h"
+#include "../Codec/Codec.h"
+#include "../Utility/Logger.h"
 
 namespace wcbot {
 

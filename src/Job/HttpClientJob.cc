@@ -2,8 +2,8 @@
 
 #include <curl/curl.h>
 
-#include "Core/WorkerThread.h"
-#include "Utility/Logger.h"
+#include "../Core/WorkerThread.h"
+#include "../Utility/Logger.h"
 
 namespace wcbot {
 

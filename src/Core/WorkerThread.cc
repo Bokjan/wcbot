@@ -2,10 +2,10 @@
 
 #include <curl/curl.h>
 
-#include "Job/HttpClientJob.h"
-#include "Job/HttpHandlerJob.h"
-#include "Job/Job.h"
-#include "Utility/Logger.h"
+#include "../Job/HttpClientJob.h"
+#include "../Job/HttpHandlerJob.h"
+#include "../Job/Job.h"
+#include "../Utility/Logger.h"
 
 namespace wcbot {
 

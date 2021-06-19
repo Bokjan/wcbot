@@ -6,7 +6,7 @@
 
 #include <uv.h>
 
-#include "Codec/Codec.h"
+#include "../Codec/Codec.h"
 #include "ITC.h"
 
 namespace wcbot {

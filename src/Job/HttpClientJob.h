@@ -2,7 +2,7 @@
 
 #include "Job.h"
 
-#include "Utility/HttpPackage.h"
+#include "../Utility/HttpPackage.h"
 
 namespace wcbot {
 

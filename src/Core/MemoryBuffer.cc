@@ -5,7 +5,7 @@
 
 #include <algorithm>
 
-#include "Utility/Logger.h"
+#include "../Utility/Logger.h"
 
 namespace wcbot {
 
