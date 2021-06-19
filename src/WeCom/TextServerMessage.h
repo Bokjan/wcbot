@@ -12,9 +12,9 @@ public:
   std::vector<std::string> MentionedList;
   std::vector<std::string> MentionedMobileList;
   std::vector<std::string> VisibleToUser;
-  MemoryBuffer* GetXml() override;
-  MemoryBuffer* GetJson() override;
-  bool ValidateFields() override;
+  MemoryBuffer* GetXml() const override;
+  std::string GetJson() const override;
+  bool ValidateFields() const override;
 };
 
 }

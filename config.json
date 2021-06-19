@@ -9,7 +9,7 @@
         "BindPort": 3090
     },
     "Network": {
-        "MaxRecvBuffLength": 8388608,
+        "MaxRecvBuffLength": 1048576,
         "MaxSendBuffLength": 1048576
     },
     "Framework": {

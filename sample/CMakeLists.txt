@@ -14,4 +14,4 @@ ENDIF()
 
 SET(COMP_FILES  main.cc)
 ADD_EXECUTABLE(wcbotd ${COMP_FILES})
-TARGET_LINK_LIBRARIES(wcbotd wcbot uv pthread curl)
+TARGET_LINK_LIBRARIES(wcbotd wcbot uv pthread curl ssl crypto)

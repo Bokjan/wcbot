@@ -62,9 +62,25 @@ size_t HeaderFunction(char *Ptr, size_t Size, size_t NItems, void *UserData) {
 }
 }  // namespace http_client_impl
 
+HttpClientJob::HttpClientJob(Job *Parent)
+    : Job(Parent->Worker), TimeoutMS(1000), State(StateEnum::kCurlStart) {
+  this->Parent = Parent;
+}
+
 void HttpClientJob::Do(Job *Trigger) {
-  SafeParent()->Do(this);
-  DeleteThis();
+  switch (State) {
+    case StateEnum::kCurlStart:
+      this->DoCurlStart();
+      break;
+    case StateEnum::kCurlFinish:
+      this->DoCurlFinish();
+      break;
+    case StateEnum::kError:
+      this->DoError();
+      break;
+    default:
+      break;
+  }
 }
 
 void HttpClientJob::OnTimeout(Job *Trigger) {
@@ -75,11 +91,13 @@ void HttpClientJob::OnTimeout(Job *Trigger) {
   DeleteThis();
 }
 
-bool HttpClientJob::DoRequest(int TimeoutMS) {
+void HttpClientJob::DoCurlStart() {
   // init cURL easy
   CurlEasy = curl_easy_init();
   if (CurlEasy == nullptr) {
-    return false;
+    State = StateEnum::kError;
+    this->Do();
+    return;
   }
   curl_easy_setopt(CurlEasy, CURLOPT_TIMEOUT_MS, static_cast<long>(TimeoutMS));
   curl_easy_setopt(CurlEasy, CURLOPT_HEADERDATA, this);
@@ -118,13 +136,23 @@ bool HttpClientJob::DoRequest(int TimeoutMS) {
   }
   curl_easy_setopt(CurlEasy, CURLOPT_HTTPHEADER, CurlHeaderList);
   // join queue
-  this->JoinDelayQueue(TimeoutMS);
+  this->JoinDelayQueue(this->TimeoutMS);
   CurlPrivate PrivateUnion;
   PrivateUnion.JobId = GetJobId();
   curl_easy_setopt(CurlEasy, CURLOPT_PRIVATE, PrivateUnion.Ptr);
   // perform
   curl_multi_add_handle(Worker->CurlMultiHandle, CurlEasy);
-  return true;
+  State = StateEnum::kCurlFinish;
+}
+
+void HttpClientJob::DoCurlFinish() {
+  SafeParent()->Do(this);
+  DeleteThis();
+}
+
+void HttpClientJob::DoError() {
+  SafeParent()->Do(this);
+  DeleteThis();
 }
 
 }  // namespace wcbot

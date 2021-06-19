@@ -11,6 +11,8 @@ class ThreadContext;
 class Job {
  public:
   explicit Job(ThreadContext *Worker) : Worker(Worker), Parent(nullptr) {}
+  Job(const Job&) = delete;
+  Job(const Job&&) = delete;
   virtual ~Job();
   virtual void Do(Job *Trigger = nullptr) = 0;
   virtual void OnTimeout(Job *Trigger) = 0;

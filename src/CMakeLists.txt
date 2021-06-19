@@ -16,7 +16,7 @@ SET(COMP_FILES  ${COMP_FILES}
                 Core/MemoryBuffer.cc Core/ITC.cc)
 SET(COMP_FILES  ${COMP_FILES}
                 Job/Job.cc Job/TcpHandlerJob.cc Job/DelayQueue.cc
-                Job/HttpClientJob.cc Job/HttpHandlerJob.cc)
+                Job/HttpClientJob.cc Job/HttpHandlerJob.cc Job/SilentPushJob.cc)
 SET(COMP_FILES  ${COMP_FILES}
                 Codec/HttpCodec.cc)
 SET(COMP_FILES  ${COMP_FILES}

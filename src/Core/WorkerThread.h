@@ -30,6 +30,10 @@ class ThreadContext final {
   void *CurlMultiHandle;
   uv_timer_t UvCurlTimer;
 
+  ThreadContext() = default;
+  ThreadContext(const ThreadContext&) = delete;
+  ThreadContext(const ThreadContext&&) = delete;
+
   void Initialize();
   void Finalize();
 

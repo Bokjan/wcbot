@@ -206,7 +206,6 @@ static int SocketFunction(CURL *Easy, curl_socket_t CurlSocket, int Action, void
       uv_poll_start(&CurlContext->UvPoll, UV_READABLE, UvCurlOnPoll);
       break;
     case CURL_POLL_OUT:
-      LOG_TRACE("");
       uv_poll_start(&CurlContext->UvPoll, UV_WRITABLE, UvCurlOnPoll);
       break;
     case CURL_POLL_REMOVE:

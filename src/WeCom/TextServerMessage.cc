@@ -11,7 +11,7 @@
 namespace wcbot {
 namespace wecom {
 
-bool TextServerMessage::ValidateFields() {
+bool TextServerMessage::ValidateFields() const {
   constexpr auto kContentMaxLength = 2048UL;
   if (Content.length() > kContentMaxLength || Content.empty()) {
     LOG_WARN("`TextServerMessage::Content` length=%" PRIu64 ", max=%" PRIu64 ", validate failed!",
@@ -21,12 +21,12 @@ bool TextServerMessage::ValidateFields() {
   return true;
 }
 
-MemoryBuffer* TextServerMessage::GetXml() {
+MemoryBuffer* TextServerMessage::GetXml() const {
   // todo
   return nullptr;
 }
 
-MemoryBuffer* TextServerMessage::GetJson() {
+std::string TextServerMessage::GetJson() const {
   // start
   rapidjson::StringBuffer SB;
   rapidjson::Writer<rapidjson::StringBuffer> Writer(SB);
@@ -90,9 +90,7 @@ MemoryBuffer* TextServerMessage::GetJson() {
   Writer.EndObject();
   Writer.EndObject();
   // build MemoryBuffer
-  MemoryBuffer* MB = MemoryBuffer::Create();
-  MB->Append(SB.GetString(), SB.GetSize());
-  return MB;
+  return std::string(SB.GetString(), SB.GetSize());
 }
 
 }  // namespace wecom

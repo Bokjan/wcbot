@@ -1,5 +1,8 @@
 #include "HttpHandlerJob.h"
 
+#include "SilentPushJob.h"
+#include "../WeCom/TextServerMessage.h"
+
 namespace wcbot {
 
 HttpHandlerJob::HttpHandlerJob(ThreadContext* Worker, TcpMemoryBuffer* RB)
@@ -49,6 +52,10 @@ void HttpHandlerJob::DoParseTcpPackage() {
 
 void HttpHandlerJob::DoDispatchRequest() {
   // todo
+  wecom::TextServerMessage TSM;
+  TSM.Content = "hello world from C++";
+  auto J = new SilentPushJob(this->Worker, TSM);
+  J->Do();
   this->Response400BadRequest();
   State = StateEnum::kFinish;
   this->Do();

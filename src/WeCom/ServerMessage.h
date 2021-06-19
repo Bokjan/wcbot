@@ -17,9 +17,9 @@ constexpr auto kChatIdAllBlackboard = "@all_blackboard";
 class ServerMessage {
  public:
   virtual ~ServerMessage();
-  virtual MemoryBuffer* GetXml();
-  virtual MemoryBuffer* GetJson() = 0;
-  virtual bool ValidateFields() = 0;
+  virtual MemoryBuffer* GetXml() const;
+  virtual std::string GetJson() const = 0;
+  virtual bool ValidateFields() const = 0;
 
   std::vector<std::string> ChatId;
 };
