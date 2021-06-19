@@ -10,7 +10,7 @@
 namespace wcbot {
 
 MemoryBuffer::MemoryBuffer() : BasePtr(nullptr), Length(0), Capacity(0) {
-  BasePtr = reinterpret_cast<char *>(malloc(MemoryBuffer::kInitialSize));
+  BasePtr = reinterpret_cast<char*>(malloc(MemoryBuffer::kInitialSize));
   Capacity = MemoryBuffer::kInitialSize;
 }
 
@@ -44,12 +44,13 @@ void MemoryBuffer::IncreaseLength(size_t Size) {
   this->SetNullTerminated();
 }
 
-void MemoryBuffer::Append(const void *Source, size_t Length) {
+MemoryBuffer* MemoryBuffer::Append(const void* Source, size_t Length) {
   while (this->Length + Length > Capacity) {
     this->DoubleCapacity();
   }
   memcpy(this->BasePtr + this->Length, Source, Length);
   this->Length += Length;
+  return this;
 }
 
 void MemoryBuffer::SwapMemory(MemoryBuffer& Other) {

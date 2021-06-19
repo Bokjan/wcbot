@@ -20,7 +20,11 @@ SET(COMP_FILES  ${COMP_FILES}
 SET(COMP_FILES  ${COMP_FILES}
                 Codec/HttpCodec.cc)
 SET(COMP_FILES  ${COMP_FILES}
-                WeCom/Message.cc WeCom/Callback.cc)
+                WeCom/ServerMessage.cc 
+                WeCom/TextServerMessage.cc WeCom/MarkdownServerMessage.cc 
+                WeCom/ImageServerMessage.cc WeCom/NewsServerMessage.cc 
+                WeCom/MiniProgramServerMessage.cc WeCom/FileServerMessage.cc 
+                WeCom/ClientMessage.cc)
 SET(COMP_FILES  ${COMP_FILES}
                 Utility/Common.cc Utility/Logger.cc Utility/HttpPackage.cc)
 SET(COMP_FILES  ${COMP_FILES}

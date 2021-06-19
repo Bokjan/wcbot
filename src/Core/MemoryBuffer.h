@@ -18,8 +18,8 @@ class MemoryBuffer {
   void DoubleCapacity();
   void Allocate(size_t SuggestedLength);
   void IncreaseLength(size_t Size);
-  void Append(const void* Source, size_t Length);
-  void Append(const std::string& Str) { this->Append(Str.data(), Str.length()); }
+  MemoryBuffer* Append(const void* Source, size_t Length);
+  MemoryBuffer* Append(const std::string& Str) { return this->Append(Str.data(), Str.length()); }
   void SwapMemory(MemoryBuffer& Other);
   void SetNullTerminated();
   char* GetBase() const { return BasePtr; }

@@ -2,6 +2,7 @@
 
 #include "../Core/MemoryBuffer.h"
 #include "Common.h"
+#include "Logger.h"
 
 namespace wcbot {
 
@@ -103,7 +104,7 @@ bool HttpRequest::Parse(const char *Data, size_t Length) {
   char *Current = nullptr;
   // request line
   do {
-    Search = strnstr(const_cast<char *>(Data), "\r\n", Length);
+    Search = utility::StrNStr(Data, Length, "\r\n", sizeof("\r\n") - 1);
     if (Search == nullptr) {
       return false;
     }
@@ -148,8 +149,9 @@ bool HttpRequest::Parse(const char *Data, size_t Length) {
 
   // headers
   do {
-    Current = Search + 2;                                   // 1st header line
-    Search = strnstr(Current, "\r\n\r\n", Data - Current);  // end of header
+    Current = Search + 2;  // 1st header line
+    Search = utility::StrNStr(Current, Data - Current, "\r\n\r\n",
+                              sizeof("\r\n\r\n") - 1);  // end of header
     if (Search == nullptr) {
       return false;
     }
@@ -157,7 +159,8 @@ bool HttpRequest::Parse(const char *Data, size_t Length) {
     auto HeaderEnds = Search + 2;
     char *LineEnds;
     while (Current < HeaderEnds &&
-           (LineEnds = strnstr(Current, "\r\n", HeaderEnds - Current)) != nullptr) {
+           (LineEnds = utility::StrNStr(Current, HeaderEnds - Current, "\r\n",
+                                        sizeof("\r\n") - 1)) != nullptr) {
       do {
         char *ColonPos;
         for (ColonPos = Current; ColonPos < LineEnds; ++ColonPos) {
@@ -210,8 +213,8 @@ bool HttpRequest::Parse(const char *Data, size_t Length) {
     if (MapIt == Headers.end()) {
       break;
     }
-    uint64_t HeaderContentLength;
-    if (!utility::CStrToUInt64(MapIt->second.c_str(), HeaderContentLength)) {
+    long HeaderContentLength;
+    if (!utility::CStrToInt64(MapIt->second.c_str(), HeaderContentLength)) {
       break;
     }
     if (ActualBodyLength != HeaderContentLength) {

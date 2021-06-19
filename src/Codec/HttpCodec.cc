@@ -5,17 +5,22 @@
 
 #include <string>
 
+#include "../Utility/Common.h"
+
 namespace wcbot {
 
 static ssize_t HttpProtocolCheck(const MemoryBuffer *Buffer) {
-  char *Search = strstr(Buffer->GetBase(), "\r\n\r\n");
+  char *Search =
+      utility::StrNStr(Buffer->GetBase(), Buffer->GetLength(), "\r\n\r\n", sizeof("\r\n\r\n") - 1);
   if (Search == nullptr) {
     return 0;
   }
   size_t HeaderLength = Search - Buffer->GetBase() + sizeof("\r\n\r\n") - 1;
-  Search = strstr(Buffer->GetBase(), "Content-Length:");
+  Search = utility::StrNStr(Buffer->GetBase(), Buffer->GetLength(),
+                            "Content-Length:", sizeof("Content-Length:") - 1);
   if (Search == nullptr) {
-    Search = strstr(Buffer->GetBase(), "content-length:");
+    Search = utility::StrNStr(Buffer->GetBase(), Buffer->GetLength(),
+                              "content-length:", sizeof("content-length:") - 1);
   }
   if (Search == nullptr) {
     // buffer length == header length, w/o `Content-Length`?
@@ -26,13 +31,14 @@ static ssize_t HttpProtocolCheck(const MemoryBuffer *Buffer) {
     }
   }
   char *ContentLengthStr = Search + sizeof("Content-Length:") - 1;
-  Search = strstr(ContentLengthStr, "\r\n");
+  Search = utility::StrNStr(ContentLengthStr,
+                            Buffer->GetLength() - (ContentLengthStr - Buffer->GetBase()), "\r\n",
+                            sizeof("\r\n") - 1);
   if (Search == nullptr) {
     return 0;
   }
   size_t ContentLength;
-  sscanf(ContentLengthStr, "%lu", &ContentLength);
-  if (Buffer->GetLength() < HeaderLength + ContentLength) {
+  if (!utility::CStrToUInt64(ContentLengthStr, ContentLength)) {
     return 0;
   }
   return HeaderLength + ContentLength;
