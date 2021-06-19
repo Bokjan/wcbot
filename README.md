@@ -14,7 +14,7 @@ Worker model|Asynchronous (state machine)|Synchronous, thread-blocking
 Performance|High|Low
 Extensibility|High|N/A
 
-This time, we develop `wcbot` from scratch. Performance and R&D efficiency are improved a lot. 
+This time, we develop `wcbot` from scratch. Performance and R&D efficiency are improved a lot. `tlinux` native means there's only a gcc 4.8.5 (C++11). 
 
 # Prerequisites
 - CMake 3.1 +

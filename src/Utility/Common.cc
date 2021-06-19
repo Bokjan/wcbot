@@ -10,8 +10,6 @@
 #include <openssl/evp.h>
 #include <openssl/md5.h>
 
-#include "Logger.h"
-
 namespace wcbot {
 namespace utility {
 
@@ -81,8 +79,6 @@ std::string Base64Encode(const void* Data, const uint64_t Length) {
   while (Buffer.length() > Base64Length - 1) {
     Buffer.pop_back();
   }
-  LOG_ALL("cl=%u, al=%d, bl=%u, bc=%u", Base64Length, FinalLength, Buffer.length(),
-          Buffer.capacity());
   return Buffer;
 }
 

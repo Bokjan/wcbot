@@ -8,7 +8,7 @@ namespace wecom {
 class TextServerMessage final : public ServerMessage {
 public:
   std::string PostId;
-  std::string Content;
+  std::string Content;  // max 2048
   std::vector<std::string> MentionedList;
   std::vector<std::string> MentionedMobileList;
   std::vector<std::string> VisibleToUser;

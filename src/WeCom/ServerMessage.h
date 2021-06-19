@@ -21,7 +21,7 @@ class ServerMessage {
   virtual std::string GetJson() const = 0;
   virtual bool ValidateFields() const = 0;
 
-  std::vector<std::string> ChatId;
+  std::vector<std::string> ChatId;  // max 100
 };
 
 }  // namespace wecom

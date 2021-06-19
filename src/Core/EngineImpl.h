@@ -14,7 +14,10 @@ namespace wcbot {
 struct BotConfig {
   bool ParseOk;
   struct {
-    std::string WebHook;
+    std::string WebHookKey;
+    std::string WebHookPrefix;
+    std::string WebHookSend;         // internal
+    std::string WebHookUploadMedia;  // internal
     std::string Token;
     std::string EncodingAesKey;
   } Bot;

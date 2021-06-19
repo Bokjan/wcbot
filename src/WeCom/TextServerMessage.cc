@@ -41,12 +41,12 @@ std::string TextServerMessage::GetJson() const {
       Buffer.push_back('|');
     }
     Buffer.pop_back(); // omit last |
-    Writer.String(Buffer.c_str(), Buffer.length(), false);
+    Writer.String(Buffer.c_str(), Buffer.length());
   }
   // post_id
   if (!PostId.empty()) {
     Writer.Key("post_id");
-    Writer.String(PostId.c_str(), PostId.length(), false);
+    Writer.String(PostId.c_str(), PostId.length());
   }
   // visible_to_user
   if (!VisibleToUser.empty()) {
@@ -58,38 +58,35 @@ std::string TextServerMessage::GetJson() const {
       Buffer.push_back('|');
     }
     Buffer.pop_back(); // omit last |
-    Writer.String(Buffer.c_str(), Buffer.length(), false);
+    Writer.String(Buffer.c_str(), Buffer.length());
   }
   // msgtype
   Writer.Key("msgtype");
   Writer.String("text");
+  // text
   Writer.Key("text");
   Writer.StartObject();
-  // content
   Writer.Key("content");
-  Writer.String(Content.c_str(), Content.length(), false);
-  // mentioned list
+  Writer.String(Content.c_str(), Content.length());
   if (!MentionedList.empty()) {
     Writer.Key("mentioned_list");
     Writer.StartArray();
     for (const auto &Item : MentionedList) {
-      Writer.String(Item.c_str(), Item.length(), false);
+      Writer.String(Item.c_str(), Item.length());
     }
     Writer.EndArray();
   }
-  // mentioned mobile list
   if (!MentionedMobileList.empty()) {
     Writer.Key("mentioned_mobile_list");
     Writer.StartArray();
     for (const auto &Item : MentionedMobileList) {
-      Writer.String(Item.c_str(), Item.length(), false);
+      Writer.String(Item.c_str(), Item.length());
     }
     Writer.EndArray();
   }
+  Writer.EndObject();
   // end
   Writer.EndObject();
-  Writer.EndObject();
-  // build MemoryBuffer
   return std::string(SB.GetString(), SB.GetSize());
 }
 

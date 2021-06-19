@@ -75,9 +75,17 @@ static bool InternalParseConfig(BotConfig &Config, const rapidjson::Document &Js
       break;
     }
     const rapidjson::Value &Bot = Json["Bot"];
-    BREAK_ON_FALSE(RapidJsonGetString(Bot, "WebHook", Config.Bot.WebHook));
+    BREAK_ON_FALSE(RapidJsonGetString(Bot, "WebHookKey", Config.Bot.WebHookKey));
+    BREAK_ON_FALSE(RapidJsonGetString(Bot, "WebHookPrefix", Config.Bot.WebHookPrefix));
     BREAK_ON_FALSE(RapidJsonGetString(Bot, "Token", Config.Bot.Token));
     BREAK_ON_FALSE(RapidJsonGetString(Bot, "EncodingAesKey", Config.Bot.EncodingAesKey));
+    Config.Bot.WebHookSend.assign(Config.Bot.WebHookPrefix)
+        .append("/send?key=")
+        .append(Config.Bot.WebHookKey);
+    Config.Bot.WebHookUploadMedia.assign(Config.Bot.WebHookPrefix)
+        .append("/upload_media?key=")
+        .append(Config.Bot.WebHookKey)
+        .append("&type=file");
 
     // Http
     if (!Json["Http"].IsObject()) {

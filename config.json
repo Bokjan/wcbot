@@ -1,6 +1,7 @@
 {
     "Bot": {
-        "WebHook": "",
+        "WebHookKey": "https://qyapi.weixin.qq.com/cgi-bin/webhook",
+        "WebHookPrefix":"<UUID>",
         "Token": "",
         "EncodingAesKey": ""
     },
