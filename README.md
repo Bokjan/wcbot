@@ -1,9 +1,9 @@
 # wcbot
-A brand new Group Bot (群机器人) library for WeCom (企业微信). Former version is [DiaoBot](https://github.com/Bokjan/DiaoBot). Tested on macOS 11.3.1, Ubuntu 20.04, and tlinux 2.2. 
+A brand new Group Bot (群机器人) library for WeCom (企业微信). Former version is [DiaoBot](https://github.com/Bokjan/DiaoBot). 
 
 ||wcbot|[DiaoBot](https://github.com/Bokjan/DiaoBot)|
 --|--|--
-Platform|\*nix|Linux
+`tlinux` native|Yes|Yes
 Library type|Static|Dynamic (SDK)
 Deployment|Single executable|Exe + SDK dylib + user dylib
 Config file|JSON|XML-like TFC config

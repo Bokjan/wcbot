@@ -10,12 +10,22 @@ IF (APPLE)
     LINK_DIRECTORIES(/usr/local/lib)
 ENDIF()
 
-SET(COMP_FILES  Core/EngineImpl.cc Core/Engine.cc Core/WorkerThread.cc
-                Core/MemoryBuffer.cc Core/ITC.cc 
+SET(COMP_FILES)
+SET(COMP_FILES  ${COMP_FILES}
+                Core/EngineImpl.cc Core/Engine.cc Core/WorkerThread.cc
+                Core/MemoryBuffer.cc Core/ITC.cc)
+SET(COMP_FILES  ${COMP_FILES}
                 Job/Job.cc Job/TcpHandlerJob.cc Job/DelayQueue.cc
-                Job/HttpClientJob.cc Job/HttpHandlerJob.cc
-                Codec/HttpCodec.cc
+                Job/HttpClientJob.cc Job/HttpHandlerJob.cc)
+SET(COMP_FILES  ${COMP_FILES}
+                Codec/HttpCodec.cc)
+SET(COMP_FILES  ${COMP_FILES}
+                WeCom/Message.cc WeCom/Callback.cc)
+SET(COMP_FILES  ${COMP_FILES}
                 Utility/Common.cc Utility/Logger.cc Utility/HttpPackage.cc)
+SET(COMP_FILES  ${COMP_FILES}
+                ThirdParty/tinyxml2/tinyxml2.cpp
+                ThirdParty/WXBizMsgCrypt/WXBizMsgCrypt.cpp)
 # SET(COMP_FILES ${COMP_FILES} "../ThirdParty/md5/md5.cc")
 # SET(COMP_FILES ${COMP_FILES} "../ThirdParty/cc-base64/base64.cc")
 # SET(COMP_FILES ${COMP_FILES} "../ThirdParty/tinyxml2/tinyxml2.cc")
