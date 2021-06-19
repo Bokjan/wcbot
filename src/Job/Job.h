@@ -10,7 +10,7 @@ class ThreadContext;
 
 class Job {
  public:
-  explicit Job(ThreadContext *Worker) : Worker(Worker), Parent(nullptr) {}
+  explicit Job(ThreadContext *Worker);
   Job(const Job&) = delete;
   Job(const Job&&) = delete;
   virtual ~Job();
@@ -25,6 +25,7 @@ class Job {
   void JoinDelayQueue(int TimeoutMS);
 
  public:
+  int ErrCode;
   ThreadContext *Worker;
 
  protected:

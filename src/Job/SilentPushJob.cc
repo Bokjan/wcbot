@@ -10,13 +10,16 @@
 
 namespace wcbot {
 
+SilentPushJob::SilentPushJob(ThreadContext *Worker, const wecom::ServerMessage &Message)
+    : Job(Worker), State(StateEnum::kSendReq), Message(&Message) {}
+
 void SilentPushJob::Do(Job *Trigger) {
   switch (State) {
     case StateEnum::kSendReq:
       this->DoSendReq();
       break;
     case StateEnum::kSendRsp:
-      this->DoSendRsp();
+      this->DoSendRsp(Trigger);
       break;
     default:
       break;
@@ -30,20 +33,20 @@ void SilentPushJob::OnTimeout(Job *Trigger) {
 
 void SilentPushJob::DoSendReq() {
   constexpr int kTimeoutMS = 5000;
-  SendJob = new HttpClientJob(this);
-  SendJob->Request.SetUrl(Engine::Get().GetImpl()->Config.Bot.WebHookSend);
-  SendJob->Request.Headers.insert(std::make_pair("Content-Type", "application/json"));
-  SendJob->Request.Body = std::move(Message->GetJson());
-  SendJob->Request.Method = HttpRequest::MethodEnum::kPost;
-  SendJob->TimeoutMS = kTimeoutMS;
-  SendJob->Do();
+  auto J = new HttpClientJob(this);
+  J->Request.SetUrl(Engine::Get().GetImpl()->Config.Bot.WebHookSend);
+  J->Request.Headers.insert(std::make_pair("Content-Type", "application/json"));
+  J->Request.Body = std::move(Message->GetJson());
+  J->Request.Method = HttpRequest::MethodEnum::kPost;
+  J->TimeoutMS = kTimeoutMS;
+  J->Do();
   State = StateEnum::kSendRsp;
 }
 
-void SilentPushJob::DoSendRsp() {
+void SilentPushJob::DoSendRsp(Job *RspBase) {
   // check
   do {
-    auto &Response = SendJob->Response;
+    auto &Response = dynamic_cast<HttpClientJob *>(RspBase)->Response;
     if (Response.StatusCode == 0 || Response.Body.empty()) {
       LOG_ERROR("%s", "SilentPushJob, StatusCode=%d, BodyLen=%u, abnormal!", Response.StatusCode,
                 Response.Body.length());

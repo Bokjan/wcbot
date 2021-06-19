@@ -14,6 +14,8 @@ class GuardJob final : public Job {
 static thread_local GuardJob GuardJobObject;
 }  // namespace job_impl
 
+Job::Job(ThreadContext *Worker) : ErrCode(0), Worker(Worker), Parent(nullptr) {}
+
 Job::~Job() {
   for (auto ChildJob : this->Children) {
     ChildJob->ResetParent();
