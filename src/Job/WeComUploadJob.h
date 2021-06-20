@@ -12,7 +12,6 @@ class WeComUploadJob final : public Job {
   WeComUploadJob(const WeComUploadJob &) = delete;
   WeComUploadJob(const WeComUploadJob &&) = delete;
   void Do(Job *Trigger = nullptr);
-  void OnTimeout(Job *Trigger);
   void DeleteThis() { delete this; }
 
   const void *Data;       // IN

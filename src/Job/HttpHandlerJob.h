@@ -12,7 +12,6 @@ class HttpHandlerJob final : public TcpHandlerJob {
   HttpHandlerJob(const HttpHandlerJob&) = delete;
   HttpHandlerJob(const HttpHandlerJob&&) = delete;
   virtual void Do(Job* Trigger = nullptr) override;
-  virtual void OnTimeout(Job* Trigger) override;
   void DeleteThis() { delete this; }
 
  private:

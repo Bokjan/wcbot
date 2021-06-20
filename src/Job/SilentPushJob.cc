@@ -14,6 +14,7 @@ SilentPushJob::SilentPushJob(const wecom::ServerMessage &Message)
     : Job(), State(StateEnum::kSendReq), Message(&Message) {}
 
 void SilentPushJob::Do(Job *Trigger) {
+  Job::Do(Trigger);
   switch (State) {
     case StateEnum::kSendReq:
       this->DoSendReq();
@@ -26,11 +27,6 @@ void SilentPushJob::Do(Job *Trigger) {
   }
 }
 
-void SilentPushJob::OnTimeout(Job *Trigger) {
-  LOG_WARN("SilentPushJob::OnTimeout");
-  DeleteThis();
-}
-
 void SilentPushJob::DoSendReq() {
   constexpr int kTimeoutMS = 5000;
   auto J = new HttpClientJob(this);
@@ -39,16 +35,20 @@ void SilentPushJob::DoSendReq() {
   J->Request.Body = std::move(Message->GetJson());
   J->Request.Method = HttpRequest::MethodEnum::kPost;
   J->TimeoutMS = kTimeoutMS;
-  J->Do();
+  InvokeChild(J);
   State = StateEnum::kSendRsp;
 }
 
 void SilentPushJob::DoSendRsp(Job *RspBase) {
   // check
   do {
+    if (ErrCode == kErrCodeTimeout) {
+      LOG_WARN("SilentPushJob timeout");
+      break;
+    }
     auto &Response = dynamic_cast<HttpClientJob *>(RspBase)->Response;
     if (Response.StatusCode == 0 || Response.Body.empty()) {
-      LOG_ERROR("%s", "SilentPushJob, StatusCode=%d, BodyLen=%u, abnormal!", Response.StatusCode,
+      LOG_ERROR("SilentPushJob, StatusCode=%d, BodyLen=%u, abnormal!", Response.StatusCode,
                 Response.Body.length());
       break;
     }

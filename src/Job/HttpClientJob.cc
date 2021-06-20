@@ -63,11 +63,12 @@ size_t HeaderFunction(char *Ptr, size_t Size, size_t NItems, void *UserData) {
 }  // namespace http_client_impl
 
 HttpClientJob::HttpClientJob(Job *Parent)
-    : Job(Parent), TimeoutMS(1000), State(StateEnum::kCurlStart) {
+    : IOJob(Parent), TimeoutMS(1000), State(StateEnum::kCurlStart) {
   this->Parent = Parent;
 }
 
 void HttpClientJob::Do(Job *Trigger) {
+  Job::Do(Trigger);
   switch (State) {
     case StateEnum::kCurlStart:
       this->DoCurlStart();
@@ -83,12 +84,13 @@ void HttpClientJob::Do(Job *Trigger) {
   }
 }
 
-void HttpClientJob::OnTimeout(Job *Trigger) {
+void HttpClientJob::OnTimeout() {
   LOG_TRACE("%s", "HttpClientJob::OnTimeout");
   int Running;
   curl_multi_socket_action(worker_impl::g_ThisThread->CurlMultiHandle, CURL_SOCKET_TIMEOUT, 0,
                            &Running);
-  SafeParent()->OnTimeout(this);
+  ErrCode = kErrCodeTimeout;
+  SafeParent()->Do(this);
   DeleteThis();
 }
 

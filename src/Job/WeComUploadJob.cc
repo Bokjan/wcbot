@@ -14,6 +14,7 @@ WeComUploadJob::WeComUploadJob(Job *Receiver)
     : Job(Receiver), Code(0), State(StateEnum::kUploadMediaReq) {}
 
 void WeComUploadJob::Do(Job *Trigger) {
+  Job::Do(Trigger);
   switch (State) {
     case StateEnum::kUploadMediaReq:
       this->DoUploadMediaReq();
@@ -27,11 +28,6 @@ void WeComUploadJob::Do(Job *Trigger) {
     default:
       break;
   }
-}
-
-void WeComUploadJob::OnTimeout(Job *Trigger) {
-  SafeParent()->OnTimeout(this);
-  DeleteThis();
 }
 
 void WeComUploadJob::DoError() {
@@ -65,16 +61,20 @@ void WeComUploadJob::DoUploadMediaReq() {
   Body.append(reinterpret_cast<const char *>(Data), Length);
   Body.append("\r\n--" BOUNDARY_STR "--\r\n");
   J->TimeoutMS = kTimeoutMS;
-  J->Do();
+  InvokeChild(J);
   State = StateEnum::kUploadMediaRsp;
 }
 
 void WeComUploadJob::DoUploadMediaRsp(Job *RspBase) {
   // check
   auto Rsp = dynamic_cast<HttpClientJob *>(RspBase);
-  LOG_DEBUG("%s", Rsp->Response.Body.c_str());
   do {
+    if (ErrCode == kErrCodeTimeout) {
+      LOG_WARN("%s", "WeComUploadJob timeout!");
+      break;
+    }
     auto &Response = Rsp->Response;
+    LOG_DEBUG("%s", Response.Body.c_str());
     if (Response.StatusCode == 0 || Response.Body.empty()) {
       LOG_ERROR("%s", "WeComUploadJob, StatusCode=%d, BodyLen=%u, abnormal!", Response.StatusCode,
                 Response.Body.length());

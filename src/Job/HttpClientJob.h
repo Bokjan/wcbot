@@ -6,7 +6,7 @@
 
 namespace wcbot {
 
-class HttpClientJob final : public Job {
+class HttpClientJob final : public IOJob {
  public:
   union CurlPrivate {
     void* Ptr;
@@ -18,7 +18,7 @@ class HttpClientJob final : public Job {
   HttpClientJob(const HttpClientJob&&) = delete;
 
   virtual void Do(Job* Trigger = nullptr) override;
-  virtual void OnTimeout(Job* Trigger) override;
+  virtual void OnTimeout() override;
 
   void DeleteThis() { delete this; }
 

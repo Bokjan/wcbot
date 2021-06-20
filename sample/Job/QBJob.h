@@ -10,6 +10,5 @@ class QBJob final : public Job {
   QBJob(const QBJob&) = delete;
   QBJob(const QBJob&&) = delete;
   void Do(Job* Trigger = nullptr) override;
-  void OnTimeout(Job* Trigger) override;
   void DeleteThis() { delete this; }
 };

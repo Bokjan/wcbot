@@ -22,6 +22,7 @@ void RegisterQBJob() {
   Trigger.SetDayOfMonth(16);
   Trigger.SetHour(10);
   Trigger.SetMinute(0);
+  Trigger.SetAllEvery();
   wcbot::Engine::Get().RegisterCronJob(
       Trigger, []() -> wcbot::Job * { return new QBJob(); });
 }

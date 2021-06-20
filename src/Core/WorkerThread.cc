@@ -63,9 +63,9 @@ void ThreadContext::Finalize() {
 
 void ThreadContext::DealDealyQueue() {
   const auto Now = std::chrono::steady_clock::now();
-  Job *JobPtr;
+  IOJob *JobPtr;
   while ((JobPtr = DQueue.Dequeue(Now)) != nullptr) {
-    JobPtr->OnTimeout(nullptr);
+    JobPtr->OnTimeout();
   }
 }
 

@@ -17,12 +17,8 @@ namespace wcbot {
 HttpHandlerJob::HttpHandlerJob(TcpMemoryBuffer* RB)
     : TcpHandlerJob(RB), State(StateEnum::kStart) {}
 
-void HttpHandlerJob::OnTimeout(Job* Trigger) {
-  this->Response504GatewayTimeout();
-  DeleteThis();
-}
-
 void HttpHandlerJob::Do(Job* Trigger) {
+  Job::Do(Trigger);
   switch (State) {
     case StateEnum::kStart:
       this->DoStart();
@@ -74,7 +70,7 @@ void HttpHandlerJob::DoDispatchRequest() {
   // wecom::TextServerMessage TSM;
   // TSM.Content = "hello world from C++";
   // auto J = new SilentPushJob(this->Worker, TSM);
-  // J->Do();
+  // InvokeChild(J);
   this->Response400BadRequest();
   State = StateEnum::kFinish;
   this->Do();

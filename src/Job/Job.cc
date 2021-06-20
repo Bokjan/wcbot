@@ -9,12 +9,11 @@ class GuardJob final : public Job {
  public:
   GuardJob() : Job(nullptr) {}
   void Do(Job *Trigger) override {}
-  void OnTimeout(Job *Trigger) override {}
 };
 static thread_local GuardJob GuardJobObject;
 }  // namespace job_impl
 
-Job::Job(Job *Parent) : ErrCode(0), State(0), Parent(Parent) {}
+Job::Job(Job *Parent) : ErrCode(0), Parent(Parent) {}
 
 Job::~Job() {
   for (auto ChildJob : this->Children) {
@@ -22,7 +21,12 @@ Job::~Job() {
   }
 }
 
+void Job::Do(Job *Trigger) { RemoveChild(Trigger); }
+
 void Job::RemoveChild(Job *J) {
+  if (J == nullptr) {
+    return;
+  }
   for (auto It = Children.begin(); It != Children.end(); ++It) {
     if (*It != J) {
       continue;
@@ -35,8 +39,14 @@ void Job::RemoveChild(Job *J) {
 
 Job *Job::SafeParent() { return Parent == nullptr ? &job_impl::GuardJobObject : Parent; }
 
-void Job::JoinDelayQueue(int TimeoutMS) {
+void IOJob::JoinDelayQueue(int TimeoutMS) {
   worker_impl::g_ThisThread->JoinDelayQueue(this, TimeoutMS);
+}
+
+void Job::InvokeChild(Job *J, Job *DoArgument) {
+  Children.emplace_back(J);
+  J->SetParent(this);
+  J->Do(DoArgument);
 }
 
 }  // namespace wcbot

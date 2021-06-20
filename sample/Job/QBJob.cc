@@ -8,11 +8,6 @@ void QBJob::Do(Job* Trigger) {
   LOG_INFO("%s", "QBJob, 提醒发Q币");
   wcbot::wecom::TextServerMessage TSM;
   TSM.Content = "各位薅薅公子，明天发 Q 币！你的 30 Q 币用完了吗？";
-  (new wcbot::SilentPushJob(TSM))->Do();
-  DeleteThis();
-}
-
-void QBJob::OnTimeout(Job* Trigger) {
-  LOG_ERROR("QBJob timeout");
+  InvokeChild(new wcbot::SilentPushJob(TSM));
   DeleteThis();
 }

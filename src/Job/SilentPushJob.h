@@ -16,7 +16,6 @@ class SilentPushJob final : public Job {
   SilentPushJob(const SilentPushJob &) = delete;
   SilentPushJob(const SilentPushJob &&) = delete;
   void Do(Job *Trigger = nullptr);
-  void OnTimeout(Job *Trigger);
   void DeleteThis() { delete this; }
 
  private:

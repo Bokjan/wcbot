@@ -12,24 +12,33 @@ class Job {
   Job(const Job &) = delete;
   Job(const Job &&) = delete;
   virtual ~Job();
-  virtual void Do(Job *Trigger = nullptr) = 0;
-  virtual void OnTimeout(Job *Trigger) = 0;
+  virtual void Do(Job *Trigger = nullptr);
   void SetParent(Job *P) { Parent = P; }
   void ResetParent() { Parent = nullptr; }
   void RemoveChild(Job *J);
   Job *SafeParent();
-  uint32_t GetJobId() { return JobId; }
-  void SetJobId(uint32_t Id) { JobId = Id; }
-  void JoinDelayQueue(int TimeoutMS);
+
+  void InvokeChild(Job *Child, Job *DoArgument = nullptr);
 
  public:
+  enum ErrCodeEnum { kErrCodeTimeout = 9999 };
   int ErrCode;
 
  protected:
-  int State;
-  uint32_t JobId;
   Job *Parent;
   std::vector<Job *> Children;
+};
+
+class IOJob : public Job {
+ public:
+  IOJob(Job *Parent = nullptr) : Job(Parent) {}
+  void JoinDelayQueue(int TimeoutMS);
+  virtual void OnTimeout() = 0;
+  uint32_t GetJobId() { return JobId; }
+  void SetJobId(uint32_t Id) { JobId = Id; }
+
+ protected:
+  uint32_t JobId;
 };
 
 using FN_CreateJob = Job *(*)();

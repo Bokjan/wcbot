@@ -42,7 +42,7 @@ class ThreadContext final {
 
   void Tick();
   void DealDealyQueue();
-  void JoinDelayQueue(Job *J, int Millis) { DQueue.Join(J, Millis); }
+  void JoinDelayQueue(IOJob *J, int Millis) { DQueue.Join(J, Millis); }
   void InitializeCurlMulti();
 
  private:
