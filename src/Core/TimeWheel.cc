@@ -98,7 +98,6 @@ void TimeWheel::Tick(FN_TimeWheelTickFunction Function, void *UserData) {
 }
 
 void TimeWheelImpl::TickMinute(FN_TimeWheelTickFunction Function, void *UserData) {
-  LOG_TRACE("%s", "TimeWheelImpl::TickMinute");
   // update first
   UpdateCurrentInfo();
   // month

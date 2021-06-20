@@ -68,14 +68,25 @@ std::string Base64Encode(const void* Data, const uint64_t Length) {
   std::string Buffer(Base64Length, '\0');
   int FinalLength = 0;
   int OutLength;
-  EVP_ENCODE_CTX* Context = EVP_ENCODE_CTX_new();
+  EVP_ENCODE_CTX* Context;
+#if !defined(OPENSSL_VERSION_NUMBER) || OPENSSL_VERSION_NUMBER < 0x10100000L
+  EVP_ENCODE_CTX ContextStackObj;
+  Context = &ContextStackObj;
+#else
+  Context = EVP_ENCODE_CTX_new();
+#endif
+
   EVP_EncodeInit(Context);
   EVP_EncodeUpdate(Context, reinterpret_cast<unsigned char*>(&Buffer[0]), &OutLength,
                    reinterpret_cast<const unsigned char*>(Data), static_cast<int>(Length));
   FinalLength += OutLength;
   EVP_EncodeFinal(Context, reinterpret_cast<unsigned char*>(&Buffer[0]) + OutLength, &OutLength);
   FinalLength += OutLength;
+#if !defined(OPENSSL_VERSION_NUMBER) || OPENSSL_VERSION_NUMBER < 0x10100000L
+  // OpenSSL 1.0, do nothing
+#else
   EVP_ENCODE_CTX_free(Context);
+#endif
   while (Buffer.length() > Base64Length - 1) {
     Buffer.pop_back();
   }
@@ -87,14 +98,24 @@ std::string Base64Decode(const void* Data, const uint64_t Length) {
   std::string Buffer(MaxPlainLength, '\0');
   int FinalLength = 0;
   int OutLength;
-  EVP_ENCODE_CTX* Context = EVP_ENCODE_CTX_new();
+  EVP_ENCODE_CTX* Context;
+#if !defined(OPENSSL_VERSION_NUMBER) || OPENSSL_VERSION_NUMBER < 0x10100000L
+  EVP_ENCODE_CTX ContextStackObj;
+  Context = &ContextStackObj;
+#else
+  Context = EVP_ENCODE_CTX_new();
+#endif
   EVP_DecodeInit(Context);
   EVP_DecodeUpdate(Context, reinterpret_cast<unsigned char*>(&Buffer[0]), &OutLength,
                    reinterpret_cast<const unsigned char*>(Data), static_cast<int>(Length));
   FinalLength += OutLength;
   EVP_DecodeFinal(Context, reinterpret_cast<unsigned char*>(&Buffer[0]) + OutLength, &OutLength);
   FinalLength += OutLength;
+#if !defined(OPENSSL_VERSION_NUMBER) || OPENSSL_VERSION_NUMBER < 0x10100000L
+  // OpenSSL 1.0, do nothing
+#else
   EVP_ENCODE_CTX_free(Context);
+#endif
   while (Buffer.length() > static_cast<std::string::size_type>(FinalLength)) {
     Buffer.pop_back();
   }
