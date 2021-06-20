@@ -43,28 +43,25 @@ namespace itc {
 
 class TcpMainToWorker final : public ItcEvent {
  public:
-  explicit TcpMainToWorker(TcpMemoryBuffer* Buffer, ThreadContext* Worker)
-      : Buffer(Buffer), Worker(Worker) {}
+  explicit TcpMainToWorker(TcpMemoryBuffer* Buffer) : Buffer(Buffer) {}
   ~TcpMainToWorker() = default;
   void Process() override;
   void DeleteThis() { delete this; }
 
  private:
   TcpMemoryBuffer* Buffer;
-  ThreadContext* Worker;
 };
 
 class TcpWorkerToMain final : public ItcEvent {
  public:
-  explicit TcpWorkerToMain(EngineImpl* EImpl, MemoryBuffer* Buffer, uint64_t ConnId)
-      : EImpl(EImpl), Buffer(Buffer), ConnId(ConnId), CloseConnection(false) {}
+  explicit TcpWorkerToMain(MemoryBuffer* Buffer, uint64_t ConnId)
+      : Buffer(Buffer), ConnId(ConnId), CloseConnection(false) {}
   ~TcpWorkerToMain() = default;
   void SetCloseConnection() { CloseConnection = true; }
   void Process() override;
   void DeleteThis() { delete this; }
 
  private:
-  EngineImpl* EImpl;
   MemoryBuffer* Buffer;
   uint64_t ConnId;
   bool CloseConnection;
@@ -72,14 +69,12 @@ class TcpWorkerToMain final : public ItcEvent {
 
 class JobCreateAndRun final : public ItcEvent {
  public:
-  explicit JobCreateAndRun(ThreadContext* Worker, FN_CreateJob Function)
-      : Worker(Worker), Function(Function) {}
+  explicit JobCreateAndRun(FN_CreateJob Function) : Function(Function) {}
   ~JobCreateAndRun() = default;
   void Process() override;
   void DeleteThis() { delete this; }
 
  private:
-  ThreadContext* Worker;
   FN_CreateJob Function;
 };
 

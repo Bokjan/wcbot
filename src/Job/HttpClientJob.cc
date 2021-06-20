@@ -63,7 +63,7 @@ size_t HeaderFunction(char *Ptr, size_t Size, size_t NItems, void *UserData) {
 }  // namespace http_client_impl
 
 HttpClientJob::HttpClientJob(Job *Parent)
-    : Job(Parent->Worker), TimeoutMS(1000), State(StateEnum::kCurlStart) {
+    : Job(Parent), TimeoutMS(1000), State(StateEnum::kCurlStart) {
   this->Parent = Parent;
 }
 
@@ -86,7 +86,8 @@ void HttpClientJob::Do(Job *Trigger) {
 void HttpClientJob::OnTimeout(Job *Trigger) {
   LOG_TRACE("%s", "HttpClientJob::OnTimeout");
   int Running;
-  curl_multi_socket_action(Worker->CurlMultiHandle, CURL_SOCKET_TIMEOUT, 0, &Running);
+  curl_multi_socket_action(worker_impl::g_ThisThread->CurlMultiHandle, CURL_SOCKET_TIMEOUT, 0,
+                           &Running);
   SafeParent()->OnTimeout(this);
   DeleteThis();
 }
@@ -140,7 +141,7 @@ void HttpClientJob::DoCurlStart() {
   PrivateUnion.JobId = GetJobId();
   curl_easy_setopt(CurlEasy, CURLOPT_PRIVATE, PrivateUnion.Ptr);
   // perform
-  curl_multi_add_handle(Worker->CurlMultiHandle, CurlEasy);
+  curl_multi_add_handle(worker_impl::g_ThisThread->CurlMultiHandle, CurlEasy);
   State = StateEnum::kCurlFinish;
 }
 

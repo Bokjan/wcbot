@@ -6,13 +6,11 @@
 
 namespace wcbot {
 
-class ThreadContext;
-
 class Job {
  public:
-  explicit Job(ThreadContext *Worker);
-  Job(const Job&) = delete;
-  Job(const Job&&) = delete;
+  explicit Job(Job *Parent = nullptr);
+  Job(const Job &) = delete;
+  Job(const Job &&) = delete;
   virtual ~Job();
   virtual void Do(Job *Trigger = nullptr) = 0;
   virtual void OnTimeout(Job *Trigger) = 0;
@@ -26,14 +24,14 @@ class Job {
 
  public:
   int ErrCode;
-  ThreadContext *Worker;
 
  protected:
+  int State;
   uint32_t JobId;
   Job *Parent;
   std::vector<Job *> Children;
 };
 
-using FN_CreateJob = Job*(*)(ThreadContext*);
+using FN_CreateJob = Job *(*)();
 
 }  // namespace wcbot

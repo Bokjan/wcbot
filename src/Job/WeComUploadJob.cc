@@ -4,15 +4,14 @@
 
 #include "../Core/Engine.h"
 #include "../Core/EngineImpl.h"
+#include "../Core/WorkerThread.h"
 #include "../Utility/Logger.h"
 #include "HttpClientJob.h"
 
 namespace wcbot {
 
 WeComUploadJob::WeComUploadJob(Job *Receiver)
-    : Job(Receiver->Worker), Code(0), State(StateEnum::kUploadMediaReq) {
-  this->Parent = Receiver;
-}
+    : Job(Receiver), Code(0), State(StateEnum::kUploadMediaReq) {}
 
 void WeComUploadJob::Do(Job *Trigger) {
   switch (State) {
@@ -63,7 +62,7 @@ void WeComUploadJob::DoUploadMediaReq() {
   Body.append(FileName);
   Body.push_back('"');
   Body.append("\r\nContent-Type: application/octet-stream\r\n\r\n");
-  Body.append(reinterpret_cast<const char*>(Data), Length);
+  Body.append(reinterpret_cast<const char *>(Data), Length);
   Body.append("\r\n--" BOUNDARY_STR "--\r\n");
   J->TimeoutMS = kTimeoutMS;
   J->Do();
@@ -72,7 +71,7 @@ void WeComUploadJob::DoUploadMediaReq() {
 
 void WeComUploadJob::DoUploadMediaRsp(Job *RspBase) {
   // check
-  auto Rsp = dynamic_cast<HttpClientJob*>(RspBase);
+  auto Rsp = dynamic_cast<HttpClientJob *>(RspBase);
   LOG_DEBUG("%s", Rsp->Response.Body.c_str());
   do {
     auto &Response = Rsp->Response;
@@ -94,7 +93,7 @@ void WeComUploadJob::DoUploadMediaRsp(Job *RspBase) {
       LOG_WARN("WeComUploadJob errcode=%d errmsg=%s", Json["errcode"].GetInt(),
                Json["errmsg"].GetString());
       Code = Json["errcode"].GetInt();
-      Msg=Json["errmsg"].GetString();
+      Msg = Json["errmsg"].GetString();
       break;
     }
     if (!Json.HasMember("media_id") || !Json["media_id"].IsString()) {

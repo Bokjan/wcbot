@@ -50,10 +50,9 @@ class ThreadContext final {
 };
 
 namespace worker_impl {
-
+extern thread_local ThreadContext *g_ThisThread;
 void EntryPoint(void *Argument);
-void DispatchTcp(TcpMemoryBuffer *Buffer, ThreadContext *Worker);
-
+void DispatchTcp(TcpMemoryBuffer *Buffer);
 }  // namespace worker_impl
 
 }  // namespace wcbot

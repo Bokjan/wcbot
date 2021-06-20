@@ -23,5 +23,5 @@ void RegisterQBJob() {
   Trigger.SetHour(10);
   Trigger.SetMinute(0);
   wcbot::Engine::Get().RegisterCronJob(
-      Trigger, [](wcbot::ThreadContext *Worker) -> wcbot::Job * { return new QBJob(Worker); });
+      Trigger, []() -> wcbot::Job * { return new QBJob(); });
 }

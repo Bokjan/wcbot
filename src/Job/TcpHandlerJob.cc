@@ -9,12 +9,12 @@ TcpHandlerJob::~TcpHandlerJob() { delete ReceiveBuffer; }
 
 void TcpHandlerJob::SendData(MemoryBuffer* Buffer, bool CloseConnection) {
   itc::TcpWorkerToMain* Event =
-      new itc::TcpWorkerToMain(this->Worker->EImpl, Buffer, this->ReceiveBuffer->ClientTcpId);
+      new itc::TcpWorkerToMain(Buffer, this->ReceiveBuffer->ClientTcpId);
   if (CloseConnection) {
     Event->SetCloseConnection();
   }
-  this->Worker->WorkerToMainQueue.Enqueue(Event);
-  this->Worker->NotifyMain();
+  worker_impl::g_ThisThread->WorkerToMainQueue.Enqueue(Event);
+  worker_impl::g_ThisThread->NotifyMain();
 }
 
 }  // namespace wcbot

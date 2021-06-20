@@ -7,8 +7,7 @@ namespace wcbot {
 
 class TcpHandlerJob : public Job {
  public:
-  explicit TcpHandlerJob(ThreadContext* Worker, TcpMemoryBuffer* RB)
-      : Job(Worker), ReceiveBuffer(RB) {}
+  explicit TcpHandlerJob(TcpMemoryBuffer* RB) : Job(), ReceiveBuffer(RB) {}
   TcpHandlerJob(const TcpHandlerJob&) = delete;
   TcpHandlerJob(const TcpHandlerJob&&) = delete;
   virtual ~TcpHandlerJob();

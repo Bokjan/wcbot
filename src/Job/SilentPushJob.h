@@ -12,7 +12,7 @@ class HttpClientJob;
 
 class SilentPushJob final : public Job {
  public:
-  explicit SilentPushJob(ThreadContext *Worker, const wecom::ServerMessage &Message);
+  explicit SilentPushJob(const wecom::ServerMessage &Message);
   SilentPushJob(const SilentPushJob &) = delete;
   SilentPushJob(const SilentPushJob &&) = delete;
   void Do(Job *Trigger = nullptr);

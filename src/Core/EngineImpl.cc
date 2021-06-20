@@ -5,10 +5,10 @@
 #include <rapidjson/rapidjson.h>
 
 #include "../Codec/HttpCodec.h"
+#include "../ThirdParty/WXBizMsgCrypt/WXBizMsgCrypt.h"
 #include "../Utility/Common.h"
 #include "../Utility/Logger.h"
 #include "../Utility/TcpMemoryBuffer.h"
-#include "../ThirdParty/WXBizMsgCrypt/WXBizMsgCrypt.h"
 #include "WorkerThread.h"
 
 namespace wcbot {
@@ -162,7 +162,9 @@ EngineImpl::EngineImpl()
       UvLoop(uv_default_loop()),
       Dispatcher(nullptr),
       TcpConnectionId(0),
-      Cryptor(nullptr) {}
+      Cryptor(nullptr) {
+  main_impl::g_EImpl = this;
+}
 
 EngineImpl::~EngineImpl() { this->Finalize(); }
 
@@ -293,6 +295,8 @@ bool EngineImpl::InitializeSignalHandler() {
 
 namespace main_impl {
 
+EngineImpl *g_EImpl = nullptr;
+
 static void OnNewConnection(uv_stream_t *Tcp, int Status) {
   LOG_TRACE("enter, status=%d", Status);
   if (Status < 0) {
@@ -368,7 +372,7 @@ static void OnTcpRead(uv_stream_t *Handle, ssize_t NRead, const uv_buf_t *Buffer
       // dispatch a `TcpMainToWorker` async ITC event
       ssize_t Index = PImpl->Dispatcher->NextThreadIndex();
       ThreadContext *Worker = PImpl->Threads[Index];
-      ItcEvent *Event = new itc::TcpMainToWorker(MemBuf, Worker);
+      ItcEvent *Event = new itc::TcpMainToWorker(MemBuf);
       Worker->MainToWorkerQueue.Enqueue(Event);
       // fire an async notification
       Worker->NotifyWorker();
@@ -401,10 +405,10 @@ struct UvWriteRequest {
   uv_buf_t UvBuffer;
 };
 
-void SendTcpToClient(EngineImpl *Impl, MemoryBuffer *Buffer, uint64_t ConnId, bool Close) {
+void SendTcpToClient(MemoryBuffer *Buffer, uint64_t ConnId, bool Close) {
   LOG_TRACE("enter");
-  auto ConnPair = Impl->TcpIdToConn.find(ConnId);
-  if (ConnPair == Impl->TcpIdToConn.end()) {
+  auto ConnPair = main_impl::g_EImpl->TcpIdToConn.find(ConnId);
+  if (ConnPair == main_impl::g_EImpl->TcpIdToConn.end()) {
     LOG_INFO("conn=%lu already closed", ConnId);
     delete Buffer;
     return;
@@ -437,7 +441,7 @@ static void TimeWheelTickImpl(FN_CreateJob Function, void *UserData) {
   // dispatch a `JobCreateAndRun` async ITC event
   ssize_t Index = EImpl->Dispatcher->NextThreadIndex();
   ThreadContext *Worker = EImpl->Threads[Index];
-  ItcEvent *Event = new itc::JobCreateAndRun(Worker, Function);
+  ItcEvent *Event = new itc::JobCreateAndRun(Function);
   Worker->MainToWorkerQueue.Enqueue(Event);
   // fire an async notification
   Worker->NotifyWorker();

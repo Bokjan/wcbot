@@ -14,8 +14,8 @@
 
 namespace wcbot {
 
-HttpHandlerJob::HttpHandlerJob(ThreadContext* Worker, TcpMemoryBuffer* RB)
-    : TcpHandlerJob(Worker, RB), State(StateEnum::kStart) {}
+HttpHandlerJob::HttpHandlerJob(TcpMemoryBuffer* RB)
+    : TcpHandlerJob(RB), State(StateEnum::kStart) {}
 
 void HttpHandlerJob::OnTimeout(Job* Trigger) {
   this->Response504GatewayTimeout();

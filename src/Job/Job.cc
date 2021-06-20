@@ -14,7 +14,7 @@ class GuardJob final : public Job {
 static thread_local GuardJob GuardJobObject;
 }  // namespace job_impl
 
-Job::Job(ThreadContext *Worker) : ErrCode(0), Worker(Worker), Parent(nullptr) {}
+Job::Job(Job *Parent) : ErrCode(0), State(0), Parent(Parent) {}
 
 Job::~Job() {
   for (auto ChildJob : this->Children) {
@@ -35,6 +35,8 @@ void Job::RemoveChild(Job *J) {
 
 Job *Job::SafeParent() { return Parent == nullptr ? &job_impl::GuardJobObject : Parent; }
 
-void Job::JoinDelayQueue(int TimeoutMS) { Worker->JoinDelayQueue(this, TimeoutMS); }
+void Job::JoinDelayQueue(int TimeoutMS) {
+  worker_impl::g_ThisThread->JoinDelayQueue(this, TimeoutMS);
+}
 
 }  // namespace wcbot

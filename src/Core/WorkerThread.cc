@@ -10,7 +10,7 @@
 namespace wcbot {
 
 namespace worker_impl {
-static thread_local ThreadContext *Self = nullptr;
+thread_local ThreadContext *g_ThisThread = nullptr;
 static void OnTickTimer(uv_timer_t *Timer);
 static void OnItcAsyncSend(uv_async_t *Async);
 static void OnSignalInterrupt(uv_signal_t *Signal, int SigNum);
@@ -35,7 +35,7 @@ void ThreadContext::InitializeCurlMulti() {
 
 void ThreadContext::Initialize() {
   // thread_local global pointer
-  worker_impl::Self = this;
+  worker_impl::g_ThisThread = this;
   // loop
   uv_loop_init(&UvLoop);
   // tick timer
@@ -102,14 +102,15 @@ static void OnTickTimer(uv_timer_t *Timer) {
 
 void EntryPoint(void *Argument) {
   ThreadContext *Self = reinterpret_cast<ThreadContext *>(Argument);
+  g_ThisThread = Self;
   Self->Initialize();
   uv_run(&Self->UvLoop, UV_RUN_DEFAULT);
   Self->Finalize();
 }
 
-void DispatchTcp(TcpMemoryBuffer *Buffer, ThreadContext *Worker) {
+void DispatchTcp(TcpMemoryBuffer *Buffer) {
   // there's only one possible handler
-  Job *NewJob = new HttpHandlerJob(Worker, Buffer);
+  Job *NewJob = new HttpHandlerJob(Buffer);
   NewJob->Do();
 }
 
@@ -143,7 +144,7 @@ static void CurlMultiStatusCheck(CURLM *Multi) {
         HttpClientJob::CurlPrivate PrivateUnion;
         curl_easy_getinfo(Message->easy_handle, CURLINFO_RESPONSE_CODE, &ResponseCode);
         curl_easy_getinfo(Message->easy_handle, CURLINFO_PRIVATE, &PrivateUnion.Ptr);
-        Job *J = Self->DQueue.Remove(PrivateUnion.JobId);
+        Job *J = g_ThisThread->DQueue.Remove(PrivateUnion.JobId);
         // LOG_TRACE("code=%d, id=%u", ResponseCode, PrivateUnion.JobId);
         if (J != nullptr) {
           HttpClientJob *HCJ = dynamic_cast<HttpClientJob *>(J);

@@ -86,7 +86,8 @@ class EngineImpl final {
 };
 
 namespace main_impl {
-void SendTcpToClient(EngineImpl* Impl, MemoryBuffer* Buffer, uint64_t ConnId, bool Close);
+extern EngineImpl *g_EImpl;
+void SendTcpToClient(MemoryBuffer* Buffer, uint64_t ConnId, bool Close);
 }
 
 }  // namespace wcbot

@@ -69,20 +69,20 @@ namespace itc {
 
 void TcpMainToWorker::Process() {
   // dispatch TCP request
-  worker_impl::DispatchTcp(this->Buffer, this->Worker);
+  worker_impl::DispatchTcp(this->Buffer);
   // free memory
   this->DeleteThis();
 }
 
 void TcpWorkerToMain::Process() {
   // do uv write
-  main_impl::SendTcpToClient(EImpl, Buffer, ConnId, CloseConnection);
+  main_impl::SendTcpToClient(Buffer, ConnId, CloseConnection);
   // free memory
   this->DeleteThis();
 }
 
 void JobCreateAndRun::Process() {
-  Function(Worker)->Do();
+  Function()->Do();
   this->DeleteThis();
 }
 

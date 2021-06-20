@@ -10,8 +10,8 @@
 
 namespace wcbot {
 
-SilentPushJob::SilentPushJob(ThreadContext *Worker, const wecom::ServerMessage &Message)
-    : Job(Worker), State(StateEnum::kSendReq), Message(&Message) {}
+SilentPushJob::SilentPushJob(const wecom::ServerMessage &Message)
+    : Job(), State(StateEnum::kSendReq), Message(&Message) {}
 
 void SilentPushJob::Do(Job *Trigger) {
   switch (State) {

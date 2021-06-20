@@ -8,7 +8,7 @@ void QBJob::Do(Job* Trigger) {
   LOG_INFO("%s", "QBJob, 提醒发Q币");
   wcbot::wecom::TextServerMessage TSM;
   TSM.Content = "各位薅薅公子，明天发 Q 币！你的 30 Q 币用完了吗？";
-  (new wcbot::SilentPushJob(this->Worker, TSM))->Do();
+  (new wcbot::SilentPushJob(TSM))->Do();
   DeleteThis();
 }
 

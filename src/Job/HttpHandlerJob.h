@@ -8,7 +8,7 @@ namespace wcbot {
 
 class HttpHandlerJob final : public TcpHandlerJob {
  public:
-  explicit HttpHandlerJob(ThreadContext* Worker, TcpMemoryBuffer* RB);
+  explicit HttpHandlerJob(TcpMemoryBuffer* RB);
   HttpHandlerJob(const HttpHandlerJob&) = delete;
   HttpHandlerJob(const HttpHandlerJob&&) = delete;
   virtual void Do(Job* Trigger = nullptr) override;
