@@ -34,4 +34,6 @@ class Job {
   std::vector<Job *> Children;
 };
 
+using FN_CreateJob = Job*(*)(ThreadContext*);
+
 }  // namespace wcbot

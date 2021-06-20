@@ -1,6 +1,6 @@
 #include "HttpPackage.h"
 
-#include "../Core/MemoryBuffer.h"
+#include "../Utility/MemoryBuffer.h"
 #include "Common.h"
 #include "Logger.h"
 

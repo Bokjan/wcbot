@@ -12,6 +12,6 @@ IF (APPLE)
     LINK_DIRECTORIES(/usr/local/lib)
 ENDIF()
 
-SET(COMP_FILES  main.cc)
+SET(COMP_FILES  main.cc Job/QBJob.cc)
 ADD_EXECUTABLE(wcbotd ${COMP_FILES})
 TARGET_LINK_LIBRARIES(wcbotd wcbot uv pthread curl ssl crypto)

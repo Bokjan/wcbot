@@ -7,7 +7,7 @@
 #include "../Codec/HttpCodec.h"
 #include "../Utility/Common.h"
 #include "../Utility/Logger.h"
-#include "TcpMemoryBuffer.h"
+#include "../Utility/TcpMemoryBuffer.h"
 #include "WorkerThread.h"
 
 namespace wcbot {
@@ -20,6 +20,7 @@ static void OnNewConnection(uv_stream_t *Handle, int Status);
 static void AllocateBuffer(uv_handle_t *Handle, size_t SuggestedSize, uv_buf_t *Buffer);
 static void OnItcAsyncSend(uv_async_t *Async);
 static void OnSignalInterrupt(uv_signal_t *Signal, int SigNum);
+static void OnCronTimerTick(uv_timer_t *Timer);
 }  // namespace main_impl
 
 #ifdef CHECK_INT_NOT_ZERO_RET
@@ -192,6 +193,7 @@ int EngineImpl::Run() {
   CHECK_INT_NOT_ZERO_RET(uv_listen(reinterpret_cast<uv_stream_t *>(&UvServerTcp), kDefaultBacklog,
                                    main_impl::OnNewConnection));
   UvServerTcp.data = this;  // bind self
+  // main uv loop run
   int Ret = uv_run(this->UvLoop, UV_RUN_DEFAULT);
   LOG_TRACE("uv_run ret=%d", Ret);
   // join worker threads
@@ -206,6 +208,16 @@ void EngineImpl::RegisterGlobals() {
   ServerCodecs.push_back(new HttpRequestCodec());
 }
 
+bool EngineImpl::InitializeCron() {
+  LOG_TRACE("");
+  uv_timer_init(UvLoop, &UvCronTimer);
+  UvCronTimer.data = this;
+  constexpr int kImmediately = 0;
+  constexpr int kRepeat = 60 * 1000;
+  uv_timer_start(&UvCronTimer, main_impl::OnCronTimerTick, kImmediately, kRepeat);
+  return true;
+}
+
 bool EngineImpl::Initialize() {
   bool Ret = false;
   do {
@@ -217,6 +229,7 @@ bool EngineImpl::Initialize() {
       LOG_ERROR("%s", "Could not init cURL");
       break;
     }
+    BREAK_ON_FALSE(this->InitializeCron());
     Ret = true;
   } while (false);
   return Ret;
@@ -363,8 +376,8 @@ static void OnItcAsyncSend(uv_async_t *Async) {
 }
 
 static void OnSignalInterrupt(uv_signal_t *Signal, int SigNum) {
-  EngineImpl *Self = reinterpret_cast<EngineImpl *>(Signal->data);
-  uv_stop(Self->UvLoop);
+  EngineImpl *EImpl = reinterpret_cast<EngineImpl *>(Signal->data);
+  uv_stop(EImpl->UvLoop);
   LOG_ALL("SIGINT captured, main thread");
 }
 
@@ -402,6 +415,23 @@ static void OnTcpWrite(uv_write_t *UvWriteBase, int Status) {
   MemoryBuffer *MemBuf = reinterpret_cast<MemoryBuffer *>(UvWrite->UvWrite.data);
   delete MemBuf;
   delete UvWrite;
+}
+
+static void TimeWheelTickImpl(FN_CreateJob Function, void *UserData) {
+  auto EImpl = reinterpret_cast<EngineImpl*>(UserData);
+  // dispatch a `JobCreateAndRun` async ITC event
+  ssize_t Index = EImpl->Dispatcher->NextThreadIndex();
+  ThreadContext *Worker = EImpl->Threads[Index];
+  ItcEvent *Event = new itc::JobCreateAndRun(Worker, Function);
+  Worker->MainToWorkerQueue.Enqueue(Event);
+  // fire an async notification
+  Worker->NotifyWorker();
+}
+
+static void OnCronTimerTick(uv_timer_t *Timer) {
+  LOG_TRACE("");
+  auto EImpl = reinterpret_cast<EngineImpl*>(Timer->data);
+  EImpl->CronTimeWheel.Tick(TimeWheelTickImpl, EImpl);
 }
 
 }  // namespace main_impl

@@ -8,10 +8,11 @@
 
 #include "../Codec/Codec.h"
 #include "ITC.h"
+#include "TimeWheel.h"
 
 namespace wcbot {
 
-struct BotConfig {
+struct BotConfig final {
   bool ParseOk;
   struct {
     std::string WebHookKey;
@@ -55,6 +56,9 @@ class EngineImpl final {
   uint64_t TcpConnectionId;
   std::map<uint64_t, uv_tcp_t*> TcpIdToConn;
 
+  uv_timer_t UvCronTimer; // 1 minute
+  TimeWheel CronTimeWheel;
+
   EngineImpl();
   ~EngineImpl();
   EngineImpl(const EngineImpl&) = delete;
@@ -67,6 +71,7 @@ class EngineImpl final {
 
  private:
   void RegisterGlobals();
+  bool InitializeCron();
   bool InitializeWorkerThreads();
   bool InitializeSignalHandler();
   void Finalize();

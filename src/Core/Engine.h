@@ -2,14 +2,16 @@
 
 #include <string>
 
+#include "../Job/Job.h"
 #include "../Codec/Codec.h"
 #include "../Utility/Logger.h"
 
 namespace wcbot {
 
 class EngineImpl;
+class CronTrigger;
 
-class Engine {
+class Engine final {
  public:
   static Engine& Get();
   EngineImpl* GetImpl() { return PImpl; }
@@ -21,6 +23,8 @@ class Engine {
 
   void RegisterServerCodec(Codec* CodecPtr);
   void RegisterClientCodec(Codec* CodecPtr);
+
+  void RegisterCronJob(const CronTrigger &Trigger, FN_CreateJob Function);
 
  private:
   Engine();

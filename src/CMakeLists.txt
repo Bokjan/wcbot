@@ -13,7 +13,7 @@ ENDIF()
 SET(COMP_FILES)
 SET(COMP_FILES  ${COMP_FILES}
                 Core/EngineImpl.cc Core/Engine.cc Core/WorkerThread.cc
-                Core/MemoryBuffer.cc Core/ITC.cc)
+                Core/ITC.cc Core/TimeWheel.cc)
 SET(COMP_FILES  ${COMP_FILES}
                 Job/Job.cc Job/TcpHandlerJob.cc Job/DelayQueue.cc
                 Job/HttpClientJob.cc Job/HttpHandlerJob.cc Job/SilentPushJob.cc
@@ -27,7 +27,8 @@ SET(COMP_FILES  ${COMP_FILES}
                 WeCom/MiniProgramServerMessage.cc WeCom/FileServerMessage.cc 
                 WeCom/ClientMessage.cc)
 SET(COMP_FILES  ${COMP_FILES}
-                Utility/Common.cc Utility/Logger.cc Utility/HttpPackage.cc)
+                Utility/Common.cc Utility/Logger.cc Utility/HttpPackage.cc
+                Utility/MemoryBuffer.cc Utility/CronTrigger.cc)
 SET(COMP_FILES  ${COMP_FILES}
                 ThirdParty/tinyxml2/tinyxml2.cpp
                 ThirdParty/WXBizMsgCrypt/WXBizMsgCrypt.cpp)
@@ -36,5 +37,5 @@ SET(COMP_FILES  ${COMP_FILES}
 # SET(COMP_FILES ${COMP_FILES} "../ThirdParty/tinyxml2/tinyxml2.cc")
 
 ADD_LIBRARY(wcbot STATIC ${COMP_FILES})
-INSTALL(DIRECTORY . DESTINATION include/wcbot FILES_MATCHING PATTERN "*.h")
+INSTALL(DIRECTORY ./ DESTINATION include/wcbot FILES_MATCHING PATTERN "*.h")
 INSTALL(TARGETS wcbot ARCHIVE DESTINATION lib)

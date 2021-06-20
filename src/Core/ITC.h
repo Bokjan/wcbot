@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include "../Job/Job.h"
+
 // Inter-Thread Communication
 
 namespace wcbot {
@@ -66,6 +68,19 @@ class TcpWorkerToMain final : public ItcEvent {
   MemoryBuffer* Buffer;
   uint64_t ConnId;
   bool CloseConnection;
+};
+
+class JobCreateAndRun final : public ItcEvent {
+ public:
+  explicit JobCreateAndRun(ThreadContext* Worker, FN_CreateJob Function)
+      : Worker(Worker), Function(Function) {}
+  ~JobCreateAndRun() = default;
+  void Process() override;
+  void DeleteThis() { delete this; }
+
+ private:
+  ThreadContext* Worker;
+  FN_CreateJob Function;
 };
 
 }  // namespace itc

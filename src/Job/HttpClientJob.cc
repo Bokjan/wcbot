@@ -106,7 +106,6 @@ void HttpClientJob::DoCurlStart() {
   curl_easy_setopt(CurlEasy, CURLOPT_WRITEFUNCTION, http_client_impl::WriteFunction);
   // url
   curl_easy_setopt(CurlEasy, CURLOPT_URL, Request.GetUrl().c_str());
-  LOG_DEBUG("url=%s", Request.GetUrl().c_str());
   // body
   switch (Request.Method) {
     case HttpRequest::MethodEnum::kGet:

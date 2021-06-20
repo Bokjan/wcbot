@@ -5,7 +5,7 @@
 
 #include "EngineImpl.h"
 #include "WorkerThread.h"
-#include "TcpMemoryBuffer.h"
+#include "../Utility/TcpMemoryBuffer.h"
 
 namespace wcbot {
 
@@ -78,6 +78,11 @@ void TcpWorkerToMain::Process() {
   // do uv write
   main_impl::SendTcpToClient(EImpl, Buffer, ConnId, CloseConnection);
   // free memory
+  this->DeleteThis();
+}
+
+void JobCreateAndRun::Process() {
+  Function(Worker)->Do();
   this->DeleteThis();
 }
 

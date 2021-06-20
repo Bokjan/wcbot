@@ -5,8 +5,8 @@
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 
-#include "../Core/MemoryBuffer.h"
 #include "../Utility/Logger.h"
+#include "../Utility/MemoryBuffer.h"
 
 namespace wcbot {
 namespace wecom {

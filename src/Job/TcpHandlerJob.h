@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Core/TcpMemoryBuffer.h"
+#include "../Utility/TcpMemoryBuffer.h"
 #include "Job.h"
 
 namespace wcbot {
