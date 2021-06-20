@@ -24,7 +24,7 @@ class Job {
   enum ErrCodeEnum { kErrCodeTimeout = 9999 };
   int ErrCode;
 
- protected:
+ private:
   Job *Parent;
   std::vector<Job *> Children;
 };

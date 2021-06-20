@@ -61,14 +61,12 @@ int WXBizMsgCrypt::VerifyURL(const std::string &sMsgSignature,
     // 3. remove kRandEncryptStrLen str 
     if(sNoEncryptData.size() <= (kRandEncryptStrLen + kMsgLen))
     {
-        puts("1");
         return WXBizMsgCrypt_IllegalBuffer;
     }  
     uint32_t iNetLen = *((const uint32_t *)(sNoEncryptData.c_str() + kRandEncryptStrLen));
     uint32_t iMsgLen = ntohl(iNetLen);
     if(sNoEncryptData.size() < (kRandEncryptStrLen + kMsgLen + iMsgLen))
     {
-        puts("2");
         return WXBizMsgCrypt_IllegalBuffer;
     }
     sReplyEchoStr = sNoEncryptData.substr(kRandEncryptStrLen+kMsgLen,iMsgLen );
