@@ -8,6 +8,7 @@
 #include "../Utility/Common.h"
 #include "../Utility/Logger.h"
 #include "../Utility/TcpMemoryBuffer.h"
+#include "../ThirdParty/WXBizMsgCrypt/WXBizMsgCrypt.h"
 #include "WorkerThread.h"
 
 namespace wcbot {
@@ -80,6 +81,7 @@ static bool InternalParseConfig(BotConfig &Config, const rapidjson::Document &Js
     BREAK_ON_FALSE(RapidJsonGetString(Bot, "WebHookPrefix", Config.Bot.WebHookPrefix));
     BREAK_ON_FALSE(RapidJsonGetString(Bot, "Token", Config.Bot.Token));
     BREAK_ON_FALSE(RapidJsonGetString(Bot, "EncodingAesKey", Config.Bot.EncodingAesKey));
+    BREAK_ON_FALSE(RapidJsonGetString(Bot, "CallbackVerifyPath", Config.Bot.CallbackVerifyPath));
     Config.Bot.WebHookSend.assign(Config.Bot.WebHookPrefix)
         .append("/send?key=")
         .append(Config.Bot.WebHookKey);
@@ -156,7 +158,11 @@ class RoundRobinThreadDispatcher final : public ThreadDispatcher {
 };
 
 EngineImpl::EngineImpl()
-    : IsFork(true), UvLoop(uv_default_loop()), Dispatcher(nullptr), TcpConnectionId(0) {}
+    : IsFork(true),
+      UvLoop(uv_default_loop()),
+      Dispatcher(nullptr),
+      TcpConnectionId(0),
+      Cryptor(nullptr) {}
 
 EngineImpl::~EngineImpl() { this->Finalize(); }
 
@@ -209,7 +215,6 @@ void EngineImpl::RegisterGlobals() {
 }
 
 bool EngineImpl::InitializeCron() {
-  LOG_TRACE("");
   uv_timer_init(UvLoop, &UvCronTimer);
   UvCronTimer.data = this;
   constexpr int kImmediately = 0;
@@ -218,10 +223,16 @@ bool EngineImpl::InitializeCron() {
   return true;
 }
 
+bool EngineImpl::InitializeCryptor() {
+  Cryptor = new Tencent::WXBizMsgCrypt(Config.Bot.Token, Config.Bot.EncodingAesKey, "");
+  return true;
+}
+
 bool EngineImpl::Initialize() {
   bool Ret = false;
   do {
     this->RegisterGlobals();
+    BREAK_ON_FALSE(this->InitializeCryptor());
     BREAK_ON_FALSE(this->InitializeWorkerThreads());
     BREAK_ON_FALSE(this->InitializeSignalHandler());
     this->Dispatcher = new RoundRobinThreadDispatcher(Config.Framework.WorkerThread);
@@ -252,8 +263,12 @@ void EngineImpl::Finalize() {
   }
   Threads.clear();
   // dispatcher
-  if (Dispatcher == nullptr) {
+  if (Dispatcher != nullptr) {
     delete Dispatcher;
+  }
+  // cryptor
+  if (Cryptor != nullptr) {
+    delete Cryptor;
   }
 }
 
@@ -418,7 +433,7 @@ static void OnTcpWrite(uv_write_t *UvWriteBase, int Status) {
 }
 
 static void TimeWheelTickImpl(FN_CreateJob Function, void *UserData) {
-  auto EImpl = reinterpret_cast<EngineImpl*>(UserData);
+  auto EImpl = reinterpret_cast<EngineImpl *>(UserData);
   // dispatch a `JobCreateAndRun` async ITC event
   ssize_t Index = EImpl->Dispatcher->NextThreadIndex();
   ThreadContext *Worker = EImpl->Threads[Index];
@@ -430,7 +445,7 @@ static void TimeWheelTickImpl(FN_CreateJob Function, void *UserData) {
 
 static void OnCronTimerTick(uv_timer_t *Timer) {
   LOG_TRACE("");
-  auto EImpl = reinterpret_cast<EngineImpl*>(Timer->data);
+  auto EImpl = reinterpret_cast<EngineImpl *>(Timer->data);
   EImpl->CronTimeWheel.Tick(TimeWheelTickImpl, EImpl);
 }
 

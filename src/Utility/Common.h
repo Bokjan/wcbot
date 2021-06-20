@@ -18,6 +18,7 @@ std::string Md5String(const void *Data, const uint64_t Length,
                       HexStringCase Case = HexStringCase::kLower);
 std::string Base64Encode(const void *Data, const uint64_t Length);
 std::string Base64Decode(const void *Data, const uint64_t Length);
+std::string UrlDecode(const std::string &Plain);
 
 }  // namespace utility
 }  // namespace wcbot

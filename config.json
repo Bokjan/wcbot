@@ -1,9 +1,10 @@
 {
     "Bot": {
-        "WebHookKey": "https://qyapi.weixin.qq.com/cgi-bin/webhook",
-        "WebHookPrefix":"<UUID>",
+        "WebHookKey": "<UUID>",
+        "WebHookPrefix":"https://qyapi.weixin.qq.com/cgi-bin/webhook",
         "Token": "",
-        "EncodingAesKey": ""
+        "EncodingAesKey": "",
+        "CallbackVerifyPath": "/verify"
     },
     "Http": {
         "BindIpv4": "0.0.0.0",

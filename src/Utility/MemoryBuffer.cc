@@ -41,7 +41,7 @@ void MemoryBuffer::IncreaseLength(size_t Size) {
     return;
   }
   this->Length += Size;
-  this->SetNullTerminated();
+  // this->SetNullTerminated();
 }
 
 MemoryBuffer* MemoryBuffer::Append(const void* Source, size_t Length) {

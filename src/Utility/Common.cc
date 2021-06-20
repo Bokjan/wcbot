@@ -122,5 +122,43 @@ std::string Base64Decode(const void* Data, const uint64_t Length) {
   return Buffer;
 }
 
+static const char UrlDecodeMap[1 << (sizeof(char) * 8)] =
+    "000000000000000000000000000000000000000000000000"  // 0~48
+    "\x0\x1\x2\x3\x4\x5\x6\x7\x8\x9"
+    "0000000"
+    "\xA\xB\xC\xD\xE\xF"
+    "00000000000000000000000000"
+    "\xA\xB\xC\xD\xE\xF";
+
+#define IS_HEX_DIGIT(x) (UrlDecodeMap[static_cast<size_t>(x)] != '0')
+
+std::string UrlDecode(const std::string& Plain) {
+  std::string Buffer;
+  Buffer.reserve(Plain.size());
+  for (size_t i = 0; i < Plain.size(); ++i) {
+    // +
+    if (Plain[i] == '+') {
+      Buffer.push_back(' ');
+      continue;
+    }
+    // %xx
+    if (Plain[i] == '%') {
+      if (i >= Plain.size() - 2) {
+        break;
+      }
+      if (!IS_HEX_DIGIT(Plain[i + 1]) || !IS_HEX_DIGIT(Plain[i + 1])) {
+        continue;
+      }
+      Buffer.push_back((UrlDecodeMap[static_cast<size_t>(Plain[i + 1])] << 4) |
+                       UrlDecodeMap[static_cast<size_t>(Plain[i + 2])]);
+      i += 2;
+      continue;
+    }
+    // others
+    Buffer.push_back(Plain[i]);
+  }
+  return Buffer;
+}
+
 }  // namespace utility
 }  // namespace wcbot

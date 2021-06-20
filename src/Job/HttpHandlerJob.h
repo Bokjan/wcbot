@@ -16,15 +16,23 @@ class HttpHandlerJob final : public TcpHandlerJob {
   void DeleteThis() { delete this; }
 
  private:
-  enum class StateEnum : int { kStart, kParseTcpPackage, kDispatchRequest, kFinish };
+  enum class StateEnum : int {
+    kStart,
+    kParseTcpPackage,
+    kDispatchRequest,
+    kVerifyCallbackSetting,
+    kFinish
+  };
   StateEnum State;
   HttpRequest Request;
   void DoStart();
   void DoFinish();
   void DoParseTcpPackage();
   void DoDispatchRequest();
+  void DoVerifyCallbackSetting();
   void Response400BadRequest();
   void Response504GatewayTimeout();
+  void ResponseVerifyEchoString(const std::string &Body);
 };
 
 }  // namespace wcbot

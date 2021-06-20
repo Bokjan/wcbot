@@ -1,3 +1,4 @@
+
 #include "WXBizMsgCrypt.h"
 
 #include <string.h>
@@ -60,19 +61,21 @@ int WXBizMsgCrypt::VerifyURL(const std::string &sMsgSignature,
     // 3. remove kRandEncryptStrLen str 
     if(sNoEncryptData.size() <= (kRandEncryptStrLen + kMsgLen))
     {
+        puts("1");
         return WXBizMsgCrypt_IllegalBuffer;
     }  
     uint32_t iNetLen = *((const uint32_t *)(sNoEncryptData.c_str() + kRandEncryptStrLen));
     uint32_t iMsgLen = ntohl(iNetLen);
-    if(sNoEncryptData.size() <= (kRandEncryptStrLen + kMsgLen + iMsgLen))
+    if(sNoEncryptData.size() < (kRandEncryptStrLen + kMsgLen + iMsgLen))
     {
+        puts("2");
         return WXBizMsgCrypt_IllegalBuffer;
     }
     sReplyEchoStr = sNoEncryptData.substr(kRandEncryptStrLen+kMsgLen,iMsgLen );
 
     //4. validate Corpid
-    std::string sCorpid = sNoEncryptData.substr(kRandEncryptStrLen+kMsgLen+iMsgLen);
-    if(sCorpid != m_sCorpid)
+    std::string sReceiveId = sNoEncryptData.substr(kRandEncryptStrLen+kMsgLen+iMsgLen);
+    if(sReceiveId != m_sReceiveId)
     {
         return WXBizMsgCrypt_ValidateCorpid_Error;
     }
@@ -126,15 +129,15 @@ int WXBizMsgCrypt::DecryptMsg(const std::string &sMsgSignature,
     }  
     uint32_t iNetLen = *((const uint32_t *)(sNoEncryptData.c_str() + kRandEncryptStrLen));
     uint32_t iMsgLen = ntohl(iNetLen);
-    if(sNoEncryptData.size() <= (kRandEncryptStrLen + kMsgLen + iMsgLen))
+    if(sNoEncryptData.size() < (kRandEncryptStrLen + kMsgLen + iMsgLen))
     {
         return WXBizMsgCrypt_IllegalBuffer;
     }
     sMsg = sNoEncryptData.substr(kRandEncryptStrLen+kMsgLen,iMsgLen );
 
     //6. validate corpid
-    std::string sCorpid = sNoEncryptData.substr(kRandEncryptStrLen+kMsgLen+iMsgLen);
-    if(sCorpid != m_sCorpid)
+    std::string sReceiveId = sNoEncryptData.substr(kRandEncryptStrLen+kMsgLen+iMsgLen);
+    if(sReceiveId != m_sReceiveId)
     {
         return WXBizMsgCrypt_ValidateCorpid_Error;
     }
@@ -324,7 +327,7 @@ int WXBizMsgCrypt::DecodeBase64(const std::string sSrc, std::string & sTarget)
         return -1;
     }
     
-    //����ĩβ=�Ÿ���
+    //计算末尾=号个数
     int iEqualNum = 0;
     for(int n= sSrc.size() - 1; n>=0; --n)
     {
@@ -492,7 +495,7 @@ void WXBizMsgCrypt::GenNeedEncryptData(const std::string &sReplyMsg,std::string 
     sNeedEncrypt = sRandStr;
     sNeedEncrypt += sSize;
     sNeedEncrypt += sReplyMsg;
-    sNeedEncrypt += m_sCorpid;
+    sNeedEncrypt += m_sReceiveId;
 }
 
 int WXBizMsgCrypt::SetOneFieldToXml(tinyxml2::XMLDocument * pDoc, tinyxml2::XMLNode* pXmlNode, const char * pcFieldName, 
@@ -564,7 +567,7 @@ int WXBizMsgCrypt::GenReturnXml(const std::string & sEncryptMsg, const std::stri
         return -1;
     }
 
-    //ת��string
+    //转成string
     pDoc->Accept(&oPrinter);
     sResult = oPrinter.CStr();
     

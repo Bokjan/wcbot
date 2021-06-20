@@ -10,6 +10,10 @@
 #include "ITC.h"
 #include "TimeWheel.h"
 
+namespace Tencent {
+class WXBizMsgCrypt;
+}
+
 namespace wcbot {
 
 struct BotConfig final {
@@ -21,6 +25,7 @@ struct BotConfig final {
     std::string WebHookUploadMedia;  // internal
     std::string Token;
     std::string EncodingAesKey;
+    std::string CallbackVerifyPath;
   } Bot;
   struct {
     std::string BindIpv4;
@@ -59,6 +64,8 @@ class EngineImpl final {
   uv_timer_t UvCronTimer; // 1 minute
   TimeWheel CronTimeWheel;
 
+  Tencent::WXBizMsgCrypt *Cryptor;
+
   EngineImpl();
   ~EngineImpl();
   EngineImpl(const EngineImpl&) = delete;
@@ -72,6 +79,7 @@ class EngineImpl final {
  private:
   void RegisterGlobals();
   bool InitializeCron();
+  bool InitializeCryptor();
   bool InitializeWorkerThreads();
   bool InitializeSignalHandler();
   void Finalize();

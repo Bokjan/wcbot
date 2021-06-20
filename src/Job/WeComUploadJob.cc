@@ -52,7 +52,7 @@ void WeComUploadJob::DoUploadMediaReq() {
   }
   auto J = new HttpClientJob(this);
   auto &Request = J->Request;
-  Request.SetUrl(Engine::Get().GetImpl()->Config.Bot.WebHookUploadMedia);
+  Request.SetUrl(Engine::Get().GetImpl().Config.Bot.WebHookUploadMedia);
   Request.Method = HttpRequest::MethodEnum::kPost;
   Request.Headers.insert(std::make_pair("Content-Type",
                                         "multipart/form-data; "

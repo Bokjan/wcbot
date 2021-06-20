@@ -32,22 +32,22 @@ enum  WXBizMsgCryptErrorCode
 class WXBizMsgCrypt
 {
 public:
-    //���캯��
-    // @param sToken: ����ƽ̨�ϣ����������õ�Token
-    // @param sEncodingAESKey: ����ƽ̨�ϣ����������õ�EncodingAESKey
-    // @param sCorpid: ��ҵ�ŵ�corpid
+    //构造函数
+    // @param sToken: 企业微信后台，开发者设置的Token
+    // @param sEncodingAESKey: 企业微信后台，开发者设置的EncodingAESKey
+    // @param sReceiveId: 不同场景含义不同，详见文档
     WXBizMsgCrypt(const std::string &sToken, 
                     const std::string &sEncodingAESKey, 
-                    const std::string &sCorpid)
-                    :m_sToken(sToken), m_sEncodingAESKey(sEncodingAESKey),m_sCorpid(sCorpid)
+                    const std::string &sReceiveId)
+                    :m_sToken(sToken), m_sEncodingAESKey(sEncodingAESKey),m_sReceiveId(sReceiveId)
                     {   }
-	//��֤URL
-	// @param sMsgSignature: ǩ��������ӦURL������msg_signature
-	// @param sTimeStamp: ʱ�������ӦURL������timestamp
-	// @param sNonce: ���������ӦURL������nonce
-	// @param sEchoStr: ���������ӦURL������echostr
-	// @param sReplyEchoStr: ����֮���echostr����return����0ʱ��Ч
-	// @return���ɹ�0��ʧ�ܷ��ض�Ӧ�Ĵ�����
+	//验证URL
+	// @param sMsgSignature: 签名串，对应URL参数的msg_signature
+	// @param sTimeStamp: 时间戳，对应URL参数的timestamp
+	// @param sNonce: 随机串，对应URL参数的nonce
+	// @param sEchoStr: 随机串，对应URL参数的echostr
+	// @param sReplyEchoStr: 解密之后的echostr，当return返回0时有效
+	// @return：成功0，失败返回对应的错误码
 	int VerifyURL(const std::string& sMsgSignature,
 					const std::string& sTimeStamp,
 					const std::string& sNonce,
@@ -55,13 +55,13 @@ public:
 					std::string& sReplyEchoStr);
     
     
-    // ������Ϣ����ʵ�ԣ����һ�ȡ���ܺ������
-    // @param sMsgSignature: ǩ��������ӦURL������msg_signature
-    // @param sTimeStamp: ʱ�������ӦURL������timestamp
-    // @param sNonce: ���������ӦURL������nonce
-    // @param sPostData: ���ģ���ӦPOST���������
-    // @param sMsg: ���ܺ��ԭ�ģ���return����0ʱ��Ч
-    // @return: �ɹ�0��ʧ�ܷ��ض�Ӧ�Ĵ�����
+    // 检验消息的真实性，并且获取解密后的明文
+    // @param sMsgSignature: 签名串，对应URL参数的msg_signature
+    // @param sTimeStamp: 时间戳，对应URL参数的timestamp
+    // @param sNonce: 随机串，对应URL参数的nonce
+    // @param sPostData: 密文，对应POST请求的数据
+    // @param sMsg: 解密后的原文，当return返回0时有效
+    // @return: 成功0，失败返回对应的错误码
     int DecryptMsg(const std::string &sMsgSignature,
                     const std::string &sTimeStamp,
                     const std::string &sNonce,
@@ -69,13 +69,13 @@ public:
                     std::string &sMsg);
             
             
-    //�����ںŻظ��û�����Ϣ���ܴ��
-    // @param sReplyMsg:���ںŴ��ظ��û�����Ϣ��xml��ʽ���ַ���
-    // @param sTimeStamp: ʱ����������Լ����ɣ�Ҳ������URL������timestamp
-    // @param sNonce: ������������Լ����ɣ�Ҳ������URL������nonce
-    // @param sEncryptMsg: ���ܺ�Ŀ���ֱ�ӻظ��û������ģ�����msg_signature, timestamp, nonce, encrypt��xml��ʽ���ַ���,
-    //                      ��return����0ʱ��Ч
-    // return���ɹ�0��ʧ�ܷ��ض�Ӧ�Ĵ�����
+    //将企业微信回复用户的消息加密打包
+    // @param sReplyMsg:企业微信待回复用户的消息，xml格式的字符串
+    // @param sTimeStamp: 时间戳，可以自己生成，也可以用URL参数的timestamp
+    // @param sNonce: 随机串，可以自己生成，也可以用URL参数的nonce
+    // @param sEncryptMsg: 加密后的可以直接回复用户的密文，包括msg_signature, timestamp, nonce, encrypt的xml格式的字符串,
+    //                      当return返回0时有效
+    // return：成功0，失败返回对应的错误码
     int EncryptMsg(const std::string &sReplyMsg,
                     const std::string &sTimeStamp,
                     const std::string &sNonce,
@@ -85,7 +85,7 @@ public:
 private:
     std::string m_sToken;
     std::string m_sEncodingAESKey;
-    std::string m_sCorpid;
+    std::string m_sReceiveId;
 
 private:
     // AES CBC

@@ -14,7 +14,7 @@ class CronTrigger;
 class Engine final {
  public:
   static Engine& Get();
-  EngineImpl* GetImpl() { return PImpl; }
+  EngineImpl& GetImpl() { return *PImpl; }
   int Run();
   bool ParseArguments(int argc, char* argv[]);
   const std::string& GetCustomConfigPath() const;

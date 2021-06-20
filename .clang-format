@@ -4,4 +4,4 @@ ColumnLimit: 100
 # Only sort headers in each include block
 SortIncludes: true
 IncludeBlocks: Preserve
-BreakConstructorInitializersBeforeComma: true
+BreakConstructorInitializersBeforeComma: false
