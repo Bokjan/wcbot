@@ -6,7 +6,6 @@
 #include <rapidjson/writer.h>
 
 #include "../Utility/Logger.h"
-#include "../Utility/MemoryBuffer.h"
 
 namespace wcbot {
 namespace wecom {
@@ -21,9 +20,9 @@ bool TextServerMessage::ValidateFields() const {
   return true;
 }
 
-MemoryBuffer* TextServerMessage::GetXml() const {
+std::string TextServerMessage::GetXml() const {
   // todo
-  return nullptr;
+  return std::string();
 }
 
 std::string TextServerMessage::GetJson() const {

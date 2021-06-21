@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Job.h"
+#include "../Job/Job.h"
 
 namespace wcbot {
 

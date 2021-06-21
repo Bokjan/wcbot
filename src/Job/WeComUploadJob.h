@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "Job.h"
+#include "../Job/Job.h"
 
 namespace wcbot {
 
@@ -13,12 +13,12 @@ class WeComUploadJob final : public Job {
   WeComUploadJob(const WeComUploadJob &&) = delete;
   void Do(Job *Trigger = nullptr);
 
-  const void *Data;       // IN
-  uint64_t Length;        // IN
-  std::string FileName;   // IN
-  std::string MediaId;    // OUT
-  int Code;               // OUT
-  std::string Msg;        // OUT
+  const void *Data;      // IN
+  uint64_t Length;       // IN
+  std::string FileName;  // IN
+  std::string MediaId;   // OUT
+  int Code;              // OUT
+  std::string Msg;       // OUT
 
   enum Error : int {
     kErrTooLarge = 1,

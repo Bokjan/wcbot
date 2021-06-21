@@ -2,8 +2,9 @@
 
 #include <string>
 
-#include "../Job/Job.h"
 #include "../Codec/Codec.h"
+#include "../Job/CallbackMessageJob.h"
+#include "../Job/Job.h"
 #include "../Utility/Logger.h"
 
 namespace wcbot {
@@ -24,7 +25,8 @@ class Engine final {
   void RegisterServerCodec(Codec* CodecPtr);
   void RegisterClientCodec(Codec* CodecPtr);
 
-  void RegisterCronJob(const CronTrigger &Trigger, FN_CreateJob Function);
+  void RegisterCallbackHandler(FN_CreateCallbackHandlerJob Function);
+  void RegisterCronJob(const CronTrigger& Trigger, FN_CreateJob Function);
 
  private:
   Engine();

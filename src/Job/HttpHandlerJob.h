@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../Job/TcpHandlerJob.h"
 #include "../Utility/HttpPackage.h"
 #include "../Utility/Logger.h"
-#include "TcpHandlerJob.h"
 
 namespace wcbot {
 
@@ -19,6 +19,8 @@ class HttpHandlerJob final : public TcpHandlerJob {
     kParseTcpPackage,
     kDispatchRequest,
     kVerifyCallbackSetting,
+    kInvokeCallbackJobStart,
+    kInvokeCallbackJobFinish,
     kFinish
   };
   StateEnum State;
@@ -28,9 +30,13 @@ class HttpHandlerJob final : public TcpHandlerJob {
   void DoParseTcpPackage();
   void DoDispatchRequest();
   void DoVerifyCallbackSetting();
+  void DoInvokeCallbackJobStart();
+  void DoInvokeCallbackJobFinish(Job* Child);
+  void Response200OK(const std::string &Body);
   void Response400BadRequest();
+  void Response500InternalServerError();
+  void Response501NotImplemented();
   void Response504GatewayTimeout();
-  void ResponseVerifyEchoString(const std::string &Body);
 };
 
 }  // namespace wcbot

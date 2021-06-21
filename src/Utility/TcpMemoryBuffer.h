@@ -2,7 +2,7 @@
 
 #include <uv.h>
 
-#include "MemoryBuffer.h"
+#include "../Utility/MemoryBuffer.h"
 
 namespace wcbot {
 

@@ -1,7 +1,6 @@
 #pragma once
 
-#include "Job.h"
-
+#include "../Job/Job.h"
 #include "../Utility/HttpPackage.h"
 
 namespace wcbot {

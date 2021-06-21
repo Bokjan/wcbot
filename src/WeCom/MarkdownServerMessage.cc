@@ -6,7 +6,6 @@
 #include <rapidjson/writer.h>
 
 #include "../Utility/Logger.h"
-#include "../Utility/MemoryBuffer.h"
 
 namespace wcbot {
 namespace wecom {
@@ -119,9 +118,9 @@ std::string MarkdownServerMessage::GetJson() const {
   return std::string(SB.GetString(), SB.GetSize());
 }
 
-MemoryBuffer* MarkdownServerMessage::GetXml() const {
+std::string MarkdownServerMessage::GetXml() const {
   // todo
-  return nullptr;
+  return std::string();
 }
 
 }  // namespace wecom

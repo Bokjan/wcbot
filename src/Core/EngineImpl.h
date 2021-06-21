@@ -7,8 +7,9 @@
 #include <uv.h>
 
 #include "../Codec/Codec.h"
-#include "ITC.h"
-#include "TimeWheel.h"
+#include "../Core/ITC.h"
+#include "../Core/TimeWheel.h"
+#include "../Job/CallbackMessageJob.h"
 
 namespace Tencent {
 class WXBizMsgCrypt;
@@ -62,10 +63,11 @@ class EngineImpl final {
   uint64_t TcpConnectionId;
   std::map<uint64_t, uv_tcp_t*> TcpIdToConn;
 
-  uv_timer_t UvCronTimer; // 1 minute
+  uv_timer_t UvCronTimer;  // 1 minute
   TimeWheel CronTimeWheel;
+  FN_CreateCallbackHandlerJob CbHandlerCreator;
 
-  Tencent::WXBizMsgCrypt *Cryptor;
+  Tencent::WXBizMsgCrypt* Cryptor;
 
   EngineImpl();
   ~EngineImpl();
@@ -87,8 +89,8 @@ class EngineImpl final {
 };
 
 namespace main_impl {
-extern EngineImpl *g_EImpl;
+extern EngineImpl* g_EImpl;
 void SendTcpToClient(MemoryBuffer* Buffer, uint64_t ConnId, bool Close);
-}
+}  // namespace main_impl
 
 }  // namespace wcbot

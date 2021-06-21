@@ -48,6 +48,10 @@ void Engine::RegisterServerCodec(Codec *CodecPtr) { PImpl->ServerCodecs.push_bac
 
 void Engine::RegisterClientCodec(Codec *CodecPtr) { PImpl->ClientCodecs.push_back(CodecPtr); }
 
+void Engine::RegisterCallbackHandler(FN_CreateCallbackHandlerJob Function) {
+  PImpl->CbHandlerCreator = Function;
+}
+
 void Engine::RegisterCronJob(const CronTrigger &Trigger, FN_CreateJob Function) {
   PImpl->CronTimeWheel.AddCron(Trigger, Function);
 }

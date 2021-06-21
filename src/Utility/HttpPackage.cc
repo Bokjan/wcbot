@@ -1,8 +1,8 @@
 #include "HttpPackage.h"
 
+#include "../Utility/Common.h"
+#include "../Utility/Logger.h"
 #include "../Utility/MemoryBuffer.h"
-#include "Common.h"
-#include "Logger.h"
 
 namespace wcbot {
 

@@ -8,14 +8,15 @@
 
 #include "../Core/Engine.h"
 #include "../Core/EngineImpl.h"
+#include "../Job/CallbackMessageJob.h"
+#include "../Job/SilentPushJob.h"
 #include "../ThirdParty/WXBizMsgCrypt/WXBizMsgCrypt.h"
 #include "../Utility/Common.h"
-#include "SilentPushJob.h"
+#include "../WeCom/ClientMessageImpl.h"
 
 namespace wcbot {
 
-HttpHandlerJob::HttpHandlerJob(TcpMemoryBuffer* RB)
-    : TcpHandlerJob(RB), State(StateEnum::kStart) {}
+HttpHandlerJob::HttpHandlerJob(TcpMemoryBuffer* RB) : TcpHandlerJob(RB), State(StateEnum::kStart) {}
 
 void HttpHandlerJob::Do(Job* Trigger) {
   Job::Do(Trigger);
@@ -31,6 +32,12 @@ void HttpHandlerJob::Do(Job* Trigger) {
       break;
     case StateEnum::kVerifyCallbackSetting:
       this->DoVerifyCallbackSetting();
+      break;
+    case StateEnum::kInvokeCallbackJobStart:
+      this->DoInvokeCallbackJobStart();
+      break;
+    case StateEnum::kInvokeCallbackJobFinish:
+      this->DoInvokeCallbackJobFinish(Trigger);
       break;
     case StateEnum::kFinish:
       this->DoFinish();
@@ -59,21 +66,25 @@ void HttpHandlerJob::DoParseTcpPackage() {
 }
 
 void HttpHandlerJob::DoDispatchRequest() {
-  // verify callback?
-  if (Request.Method == HttpRequest::MethodEnum::kGet &&
-      Request.Path == Engine::Get().GetImpl().Config.Bot.CallbackVerifyPath) {
-    State = StateEnum::kVerifyCallbackSetting;
+  do {
+    // callback message?
+    if (Request.Method == HttpRequest::MethodEnum::kPost && Request.Path == "/") {
+      State = StateEnum::kInvokeCallbackJobStart;
+      this->Do();
+      break;
+    }
+    // verify callback?
+    if (Request.Method == HttpRequest::MethodEnum::kGet &&
+        Request.Path == Engine::Get().GetImpl().Config.Bot.CallbackVerifyPath) {
+      State = StateEnum::kVerifyCallbackSetting;
+      this->Do();
+      break;
+    }
+    // else
+    this->Response400BadRequest();
+    State = StateEnum::kFinish;
     this->Do();
-    return;
-  }
-  // todo
-  // wecom::TextServerMessage TSM;
-  // TSM.Content = "hello world from C++";
-  // auto J = new SilentPushJob(this->Worker, TSM);
-  // InvokeChild(J);
-  this->Response400BadRequest();
-  State = StateEnum::kFinish;
-  this->Do();
+  } while (false);
 }
 
 static void SplitString(const std::string& Input, std::vector<std::string>& Output,
@@ -107,7 +118,7 @@ void HttpHandlerJob::DoVerifyCallbackSetting() {
   KVPairs.clear();
   std::string UrlDecoded = utility::UrlDecode(Request.QueryString);
   GetQueryStringKV(UrlDecoded, KVPairs);
-  std::string Decrypted;
+  thread_local std::string Decrypted;
   Decrypted.clear();
   int Ret =
       Engine::Get().GetImpl().Cryptor->VerifyURL(KVPairs["msg_signature"], KVPairs["timestamp"],
@@ -117,10 +128,85 @@ void HttpHandlerJob::DoVerifyCallbackSetting() {
     this->Response400BadRequest();
   } else {
     LOG_DEBUG("decrypted=%s", Decrypted.c_str());
-    this->ResponseVerifyEchoString(Decrypted);
+    this->Response200OK(Decrypted);
   }
   State = StateEnum::kFinish;
   this->Do();
+}
+
+void HttpHandlerJob::DoInvokeCallbackJobStart() {
+  // handler registered?
+  if (Engine::Get().GetImpl().CbHandlerCreator == nullptr) {
+    this->Response501NotImplemented();
+    State = StateEnum::kFinish;
+    this->Do();
+    return;
+  }
+  // decrypt request
+  thread_local std::map<std::string, std::string> KVPairs;
+  KVPairs.clear();
+  std::string UrlDecoded = utility::UrlDecode(Request.QueryString);
+  GetQueryStringKV(UrlDecoded, KVPairs);
+  thread_local std::string Decrypted;
+  Decrypted.clear();
+  int Ret = Engine::Get().GetImpl().Cryptor->DecryptMsg(
+      KVPairs["msg_signature"], KVPairs["timestamp"], KVPairs["nonce"], Request.Body, Decrypted);
+  if (Ret != 0) {
+    LOG_WARN("WXBizMsgCrypt::DecryptMsg ret=%d", Ret);
+    this->Response400BadRequest();
+    State = StateEnum::kFinish;
+    this->Do();
+    return;
+  }
+  // parse xml
+  auto *ClientMsg = wecom::client_message_impl::GenerateClientMessageByXml(Decrypted);
+  if (ClientMsg == nullptr) {
+    LOG_WARN("%s", "wecom::client_message_impl::GenerateClientMessageByXml failed");
+    this->Response400BadRequest();
+    State = StateEnum::kFinish;
+    this->Do();
+    return;
+  }
+  // create a handler and invoke
+  auto* Child = Engine::Get().GetImpl().CbHandlerCreator();
+  Child->SetRequest(ClientMsg);
+  State = StateEnum::kInvokeCallbackJobFinish;
+  InvokeChild(Child);
+}
+
+void HttpHandlerJob::DoInvokeCallbackJobFinish(Job* ChildBase) {
+  auto *Child = dynamic_cast<CallbackMessageJob*>(ChildBase);
+  do {
+    // class type doesn't match?
+    if (Child == nullptr) {
+      LOG_ERROR("%s", "HttpHandlerJob dynamic_cast<CallbackMessageJob*>(ChildBase) failed");
+      this->Response500InternalServerError();
+      break;
+    }
+    // response ptr is null?
+    if (Child->GetResponse() == nullptr) {
+      // WeCom allows user to temporarily reply a empty 200 OK
+      // then send the actual reply by `WebhookUrl`
+      this->Response200OK("");
+      break;
+    }
+    // get the XML and reply
+    auto XmlString = Child->GetResponse()->GetXml();
+    this->Response200OK(XmlString);
+  } while (false);
+  State = StateEnum::kFinish;
+  this->Do();
+}
+
+void HttpHandlerJob::Response200OK(const std::string &Body) {
+  MemoryBuffer* MB = MemoryBuffer::Create();
+  MEMBUF_APP(MB, "HTTP/1.1 200 OK\r\nContent-Length: ");
+  char PrintBuffer[32];
+  int PrintLength = snprintf(PrintBuffer, sizeof(PrintBuffer), "%" PRIu64, Body.length());
+  MB->Append(PrintBuffer, PrintLength);
+  MEMBUF_APP(MB, "\r\n\r\n");
+  MB->Append(Body);
+  this->SendData(MB, kDisconnect);
 }
 
 void HttpHandlerJob::Response400BadRequest() {
@@ -129,20 +215,21 @@ void HttpHandlerJob::Response400BadRequest() {
   this->SendData(MB, kDisconnect);
 }
 
-void HttpHandlerJob::Response504GatewayTimeout() {
+void HttpHandlerJob::Response500InternalServerError() {
   MemoryBuffer* MB = MemoryBuffer::Create();
-  MEMBUF_APP(MB, "HTTP/1.1 504 Gateway Timeout\r\nContent-Length: 0\r\n\r\n");
+  MEMBUF_APP(MB, "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n");
   this->SendData(MB, kDisconnect);
 }
 
-void HttpHandlerJob::ResponseVerifyEchoString(const std::string& Body) {
+void HttpHandlerJob::Response501NotImplemented() {
   MemoryBuffer* MB = MemoryBuffer::Create();
-  MEMBUF_APP(MB, "HTTP/1.1 200 OK\r\nContent-Length: ");
-  char PrintBuffer[32];
-  int PrintLength = snprintf(PrintBuffer, sizeof(PrintBuffer), "%" PRIu64, Body.length());
-  MB->Append(PrintBuffer, PrintLength);
-  MEMBUF_APP(MB, "\r\n\r\n");
-  MB->Append(Body);
+  MEMBUF_APP(MB, "HTTP/1.1 501 Not Implemented\r\nContent-Length: 0\r\n\r\n");
+  this->SendData(MB, kDisconnect);
+}
+
+void HttpHandlerJob::Response504GatewayTimeout() {
+  MemoryBuffer* MB = MemoryBuffer::Create();
+  MEMBUF_APP(MB, "HTTP/1.1 504 Gateway Timeout\r\nContent-Length: 0\r\n\r\n");
   this->SendData(MB, kDisconnect);
 }
 

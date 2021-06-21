@@ -156,6 +156,7 @@ EngineImpl::EngineImpl()
       UvLoop(uv_default_loop()),
       Dispatcher(nullptr),
       TcpConnectionId(0),
+      CbHandlerCreator(nullptr),
       Cryptor(nullptr) {
   main_impl::g_EImpl = this;
 }

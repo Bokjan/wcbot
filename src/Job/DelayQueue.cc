@@ -3,7 +3,7 @@
 #include <list>
 #include <map>
 
-#include "Job.h"
+#include "../Job/Job.h"
 
 namespace wcbot {
 

@@ -10,8 +10,6 @@ namespace wecom {
 
 ServerMessage::~ServerMessage() {}
 
-MemoryBuffer* ServerMessage::GetXml() const { return nullptr; }
-
 }
 
 }

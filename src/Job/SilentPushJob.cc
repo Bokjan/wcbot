@@ -4,9 +4,9 @@
 
 #include "../Core/Engine.h"
 #include "../Core/EngineImpl.h"
+#include "../Job/HttpClientJob.h"
 #include "../Utility/Logger.h"
 #include "../WeCom/ServerMessage.h"
-#include "HttpClientJob.h"
 
 namespace wcbot {
 

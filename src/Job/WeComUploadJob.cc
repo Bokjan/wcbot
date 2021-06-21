@@ -5,13 +5,12 @@
 #include "../Core/Engine.h"
 #include "../Core/EngineImpl.h"
 #include "../Core/WorkerThread.h"
+#include "../Job/HttpClientJob.h"
 #include "../Utility/Logger.h"
-#include "HttpClientJob.h"
 
 namespace wcbot {
 
-WeComUploadJob::WeComUploadJob(Job *Receiver)
-    : Job(), Code(0), State(StateEnum::kUploadMediaReq) {}
+WeComUploadJob::WeComUploadJob(Job *Receiver) : Job(), Code(0), State(StateEnum::kUploadMediaReq) {}
 
 void WeComUploadJob::Do(Job *Trigger) {
   Job::Do(Trigger);
