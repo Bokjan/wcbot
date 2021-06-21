@@ -8,7 +8,7 @@
 
 #include "../Core/Engine.h"
 #include "../Core/EngineImpl.h"
-#include "../Job/CallbackMessageJob.h"
+#include "../Job/MessageCallbackJob.h"
 #include "../Job/SilentPushJob.h"
 #include "../ThirdParty/WXBizMsgCrypt/WXBizMsgCrypt.h"
 #include "../Utility/Common.h"
@@ -127,7 +127,6 @@ void HttpHandlerJob::DoVerifyCallbackSetting() {
     LOG_WARN("WXBizMsgCrypt::VerifyURL ret=%d, qs(decoded)=%s", Ret, UrlDecoded.c_str());
     this->Response400BadRequest();
   } else {
-    LOG_DEBUG("decrypted=%s", Decrypted.c_str());
     this->Response200OK(Decrypted);
   }
   State = StateEnum::kFinish;
@@ -159,7 +158,7 @@ void HttpHandlerJob::DoInvokeCallbackJobStart() {
     return;
   }
   // parse xml
-  auto *ClientMsg = wecom::client_message_impl::GenerateClientMessageByXml(Decrypted);
+  auto* ClientMsg = wecom::client_message_impl::GenerateClientMessageByXml(Decrypted);
   if (ClientMsg == nullptr) {
     LOG_WARN("%s", "wecom::client_message_impl::GenerateClientMessageByXml failed");
     this->Response400BadRequest();
@@ -174,12 +173,31 @@ void HttpHandlerJob::DoInvokeCallbackJobStart() {
   InvokeChild(Child);
 }
 
+static MemoryBuffer* GetHttpResponseBufferByCallbackMessage(MessageCallbackJob* J) {
+  MemoryBuffer* MB = MemoryBuffer::Create();
+  MEMBUF_APP(MB, "HTTP/1.1 200 OK\r\nContent-Length: ");
+  auto CLStartPosition = MB->GetBase() + MB->GetLength();
+  // there's 12 spaces, body up to 16 GiB
+  MEMBUF_APP(MB, "              \r\n\r\n");
+  auto Start = MB->GetLength();
+  J->GetResponse()->GetXml(MB);
+  auto BodyLength = MB->GetLength() - Start;
+  char PrintBuffer[32];
+  int PrintLength = snprintf(PrintBuffer, sizeof(PrintBuffer), "%" PRIu64, BodyLength);
+  strncpy(CLStartPosition, PrintBuffer, PrintLength);
+#ifdef DEBUG
+  MB->SetNullTerminated();
+  LOG_DEBUG("rsp body: %s", MB->GetBase());
+#endif
+  return MB;
+}
+
 void HttpHandlerJob::DoInvokeCallbackJobFinish(Job* ChildBase) {
-  auto *Child = dynamic_cast<CallbackMessageJob*>(ChildBase);
+  auto* Child = dynamic_cast<MessageCallbackJob*>(ChildBase);
   do {
     // class type doesn't match?
     if (Child == nullptr) {
-      LOG_ERROR("%s", "HttpHandlerJob dynamic_cast<CallbackMessageJob*>(ChildBase) failed");
+      LOG_ERROR("%s", "HttpHandlerJob dynamic_cast<MessageCallbackJob*>(ChildBase) failed");
       this->Response500InternalServerError();
       break;
     }
@@ -191,14 +209,14 @@ void HttpHandlerJob::DoInvokeCallbackJobFinish(Job* ChildBase) {
       break;
     }
     // get the XML and reply
-    auto XmlString = Child->GetResponse()->GetXml();
-    this->Response200OK(XmlString);
+    auto* MB = GetHttpResponseBufferByCallbackMessage(Child);
+    this->SendData(MB, kDisconnect);
   } while (false);
   State = StateEnum::kFinish;
   this->Do();
 }
 
-void HttpHandlerJob::Response200OK(const std::string &Body) {
+void HttpHandlerJob::Response200OK(const std::string& Body) {
   MemoryBuffer* MB = MemoryBuffer::Create();
   MEMBUF_APP(MB, "HTTP/1.1 200 OK\r\nContent-Length: ");
   char PrintBuffer[32];

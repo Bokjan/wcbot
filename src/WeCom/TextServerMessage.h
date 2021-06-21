@@ -12,7 +12,7 @@ class TextServerMessage final : public ServerMessage, public XmlServerMessage {
   std::vector<std::string> MentionedList;
   std::vector<std::string> MentionedMobileList;
   std::vector<std::string> VisibleToUser;
-  std::string GetXml() const override;
+  void GetXml(MemoryBuffer *Output) const override;
   std::string GetJson() const override;
   bool ValidateFields() const override;
 };

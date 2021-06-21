@@ -6,10 +6,10 @@
 
 namespace wcbot {
 
-class CallbackMessageJob : public Job {
+class MessageCallbackJob : public Job {
  public:
-  CallbackMessageJob();
-  ~CallbackMessageJob();
+  MessageCallbackJob();
+  ~MessageCallbackJob();
   void SetRequest(wecom::ClientMessage *Target);
   wecom::XmlServerMessage *GetResponse() { return Response; }
   void SetResponse(wecom::XmlServerMessage *Target) { Response = Target; }
@@ -22,6 +22,6 @@ class CallbackMessageJob : public Job {
   wecom::XmlServerMessage *Response;
 };
 
-using FN_CreateCallbackHandlerJob = CallbackMessageJob *(*)();
+using FN_CreateCallbackHandlerJob = MessageCallbackJob *(*)();
 
 }  // namespace wcbot

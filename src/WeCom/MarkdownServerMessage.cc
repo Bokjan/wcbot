@@ -6,6 +6,7 @@
 #include <rapidjson/writer.h>
 
 #include "../Utility/Logger.h"
+#include "../Utility/MemoryBuffer.h"
 
 namespace wcbot {
 namespace wecom {
@@ -25,14 +26,14 @@ bool MarkdownServerMessage::ValidateFields() const {
     }
   }
   if (Actions.size() > kMaxActionCount) {
-    LOG_WARN("MarkdownServerMessage Actions.size=%" PRIu64 ", larger than %" PRIu64,
-             Actions.size(), kMaxActionCount);
+    LOG_WARN("MarkdownServerMessage Actions.size=%" PRIu64 ", larger than %" PRIu64, Actions.size(),
+             kMaxActionCount);
     return false;
   }
   return true;
 }
 
-std::string MarkdownServerMessage::GetJson() const { 
+std::string MarkdownServerMessage::GetJson() const {
   // start
   rapidjson::StringBuffer SB;
   rapidjson::Writer<rapidjson::StringBuffer> Writer(SB);
@@ -46,7 +47,7 @@ std::string MarkdownServerMessage::GetJson() const {
       Buffer.append(Item);
       Buffer.push_back('|');
     }
-    Buffer.pop_back(); // omit last |
+    Buffer.pop_back();  // omit last |
     Writer.String(Buffer.c_str(), Buffer.length());
   }
   // post_id
@@ -63,7 +64,7 @@ std::string MarkdownServerMessage::GetJson() const {
       Buffer.append(Item);
       Buffer.push_back('|');
     }
-    Buffer.pop_back(); // omit last |
+    Buffer.pop_back();  // omit last |
     Writer.String(Buffer.c_str(), Buffer.length());
   }
   // msgtype
@@ -118,9 +119,66 @@ std::string MarkdownServerMessage::GetJson() const {
   return std::string(SB.GetString(), SB.GetSize());
 }
 
-std::string MarkdownServerMessage::GetXml() const {
-  // todo
-  return std::string();
+void MarkdownServerMessage::GetXml(MemoryBuffer *Output) const {
+  MEMBUF_APP(Output, "<xml>");
+  MEMBUF_APP(Output, "<MsgType>text</MsgType>");
+  // visible_to_user
+  if (!VisibleToUser.empty()) {
+    MEMBUF_APP(Output, "<VisibleToUser>");
+    thread_local std::string Buffer;
+    Buffer.clear();
+    for (const auto &Item : VisibleToUser) {
+      Buffer.append(Item);
+      Buffer.push_back('|');
+    }
+    Buffer.pop_back();  // omit last |
+    Output->Append(Buffer);
+    MEMBUF_APP(Output, "</VisibleToUser>");
+  }
+  MEMBUF_APP(Output, "<Markdown>");
+  // content
+  MEMBUF_APP(Output, "<Content><![CDATA[");
+  Output->Append(Content);
+  MEMBUF_APP(Output, "]]></Content>");
+  // attachment
+  if (!Actions.empty()) {
+    MEMBUF_APP(Output, "<Attachment>");
+    MEMBUF_APP(Output, "<CallbackId><![CDATA[");
+    Output->Append(CallbackId);
+    MEMBUF_APP(Output, "]]></CallbackId>");
+    for (const auto &Item : Actions) {
+      MEMBUF_APP(Output, "<Actions>");
+      MEMBUF_APP(Output, "<Name><![CDATA[");
+      Output->Append(Item.Name);
+      MEMBUF_APP(Output, "]]></Name>");
+      MEMBUF_APP(Output, "<Value><![CDATA[");
+      Output->Append(Item.Value);
+      MEMBUF_APP(Output, "]]></Value>");
+      MEMBUF_APP(Output, "<Text><![CDATA[");
+      Output->Append(Item.Text);
+      MEMBUF_APP(Output, "]]></Text>");
+      MEMBUF_APP(Output, "<Type>button</Type>");
+      constexpr size_t BufferSize = 8;
+      constexpr size_t ColorHexLength = 6;
+      thread_local char TextColorCStr[BufferSize];
+      thread_local char BorderColorCStr[BufferSize];
+      snprintf(TextColorCStr, sizeof(TextColorCStr), "%06X", Item.TextColor);
+      snprintf(BorderColorCStr, sizeof(BorderColorCStr), "%06X", Item.BorderColor);
+      MEMBUF_APP(Output, "<BorderColor><![CDATA[");
+      Output->Append(BorderColorCStr, ColorHexLength);
+      MEMBUF_APP(Output, "]]></BorderColor>");
+      MEMBUF_APP(Output, "<TextColor><![CDATA[");
+      Output->Append(TextColorCStr, ColorHexLength);
+      MEMBUF_APP(Output, "]]></TextColor>");
+      MEMBUF_APP(Output, "<ReplaceText><![CDATA[");
+      Output->Append(Item.ReplaceText);
+      MEMBUF_APP(Output, "]]></ReplaceText>");
+      MEMBUF_APP(Output, "</Actions>");
+    }
+    MEMBUF_APP(Output, "</Attachment>");
+  }
+  MEMBUF_APP(Output, "</Markdown>");
+  MEMBUF_APP(Output, "</xml>");
 }
 
 }  // namespace wecom

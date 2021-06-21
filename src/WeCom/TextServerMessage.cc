@@ -6,6 +6,7 @@
 #include <rapidjson/writer.h>
 
 #include "../Utility/Logger.h"
+#include "../Utility/MemoryBuffer.h"
 
 namespace wcbot {
 namespace wecom {
@@ -20,9 +21,49 @@ bool TextServerMessage::ValidateFields() const {
   return true;
 }
 
-std::string TextServerMessage::GetXml() const {
-  // todo
-  return std::string();
+void TextServerMessage::GetXml(MemoryBuffer *Output) const {
+  MEMBUF_APP(Output, "<xml>");
+  MEMBUF_APP(Output, "<MsgType>text</MsgType>");
+  // visible_to_user
+  if (!VisibleToUser.empty()) {
+    MEMBUF_APP(Output, "<VisibleToUser>");
+    thread_local std::string Buffer;
+    Buffer.clear();
+    for (const auto &Item : VisibleToUser) {
+      Buffer.append(Item);
+      Buffer.push_back('|');
+    }
+    Buffer.pop_back();  // omit last |
+    Output->Append(Buffer);
+    MEMBUF_APP(Output, "</VisibleToUser>");
+  }
+  MEMBUF_APP(Output, "<Text>");
+  // content
+  MEMBUF_APP(Output, "<Content><![CDATA[");
+  Output->Append(Content);
+  MEMBUF_APP(Output, "]]></Content>");
+  // mentioned list
+  if (!MentionedList.empty()) {
+    MEMBUF_APP(Output, "<MentionedList>");
+    for (const auto &Item : MentionedList) {
+      MEMBUF_APP(Output, "<Item><![CDATA[");
+      Output->Append(Item);
+      MEMBUF_APP(Output, "]]></Item>");
+    }
+    MEMBUF_APP(Output, "</MentionedList>");
+  }
+  // mentioned mobile list
+  if (!MentionedMobileList.empty()) {
+    MEMBUF_APP(Output, "<MentionedMobileList>");
+    for (const auto &Item : MentionedList) {
+      MEMBUF_APP(Output, "<Item><![CDATA[");
+      Output->Append(Item);
+      MEMBUF_APP(Output, "]]></Item>");
+    }
+    MEMBUF_APP(Output, "</MentionedMobileList>");
+  }
+  MEMBUF_APP(Output, "</Text>");
+  MEMBUF_APP(Output, "</xml>");
 }
 
 std::string TextServerMessage::GetJson() const {
@@ -39,7 +80,7 @@ std::string TextServerMessage::GetJson() const {
       Buffer.append(Item);
       Buffer.push_back('|');
     }
-    Buffer.pop_back(); // omit last |
+    Buffer.pop_back();  // omit last |
     Writer.String(Buffer.c_str(), Buffer.length());
   }
   // post_id
@@ -56,7 +97,7 @@ std::string TextServerMessage::GetJson() const {
       Buffer.append(Item);
       Buffer.push_back('|');
     }
-    Buffer.pop_back(); // omit last |
+    Buffer.pop_back();  // omit last |
     Writer.String(Buffer.c_str(), Buffer.length());
   }
   // msgtype

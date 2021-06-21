@@ -3,8 +3,8 @@
 #include <string>
 
 #include "../Codec/Codec.h"
-#include "../Job/CallbackMessageJob.h"
 #include "../Job/Job.h"
+#include "../Job/MessageCallbackJob.h"
 #include "../Utility/Logger.h"
 
 namespace wcbot {

@@ -9,7 +9,7 @@
 #include "../Codec/Codec.h"
 #include "../Core/ITC.h"
 #include "../Core/TimeWheel.h"
-#include "../Job/CallbackMessageJob.h"
+#include "../Job/MessageCallbackJob.h"
 
 namespace Tencent {
 class WXBizMsgCrypt;

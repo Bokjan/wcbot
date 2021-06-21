@@ -1,10 +1,10 @@
-#include "CallbackMessageJob.h"
+#include "MessageCallbackJob.h"
 
 namespace wcbot {
 
-CallbackMessageJob::CallbackMessageJob() : Request(nullptr), Response(nullptr) {}
+MessageCallbackJob::MessageCallbackJob() : Request(nullptr), Response(nullptr) {}
 
-CallbackMessageJob::~CallbackMessageJob() {
+MessageCallbackJob::~MessageCallbackJob() {
   // free `Request`
   if (Request != nullptr) {
     delete Request;
@@ -17,7 +17,7 @@ CallbackMessageJob::~CallbackMessageJob() {
   }
 }
 
-void CallbackMessageJob::SetRequest(wecom::ClientMessage *Target) {
+void MessageCallbackJob::SetRequest(wecom::ClientMessage *Target) {
   if (Request != nullptr) {
     delete Request;
   }

@@ -17,7 +17,7 @@ SET(COMP_FILES  ${COMP_FILES}
 SET(COMP_FILES  ${COMP_FILES}
                 Job/Job.cc Job/TcpHandlerJob.cc Job/DelayQueue.cc
                 Job/HttpClientJob.cc Job/HttpHandlerJob.cc Job/SilentPushJob.cc
-                Job/WeComUploadJob.cc Job/CallbackMessageJob.cc)
+                Job/WeComUploadJob.cc Job/MessageCallbackJob.cc)
 SET(COMP_FILES  ${COMP_FILES}
                 Codec/HttpCodec.cc)
 SET(COMP_FILES  ${COMP_FILES}
@@ -38,7 +38,7 @@ SET(INSTALL_HEADERS_CODEC   Codec/Codec.h)
 SET(INSTALL_HEADERS_UTILITY Utility/Common.h Utility/CronTrigger.h Utility/HttpPackage.h
                             Utility/Logger.h Utility/MemoryBuffer.h)
 SET(INSTALL_HEADERS_JOB     Job/Job.h Job/HttpClientJob.h Job/SilentPushJob.h
-                            Job/WeComUploadJob.h Job/CallbackMessageJob.h)
+                            Job/WeComUploadJob.h Job/MessageCallbackJob.h)
 SET(INSTALL_HEADERS_WECOM   WeCom/ServerMessage.h WeCom/ClientMessage.h
                             WeCom/TextServerMessage.h WeCom/MarkdownServerMessage.h
                             WeCom/ImageServerMessage.h WeCom/NewsServerMessage.h
