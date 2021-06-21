@@ -6,7 +6,6 @@
 #include <rapidjson/writer.h>
 
 #include "../Utility/Logger.h"
-#include "../Utility/MemoryBuffer.h"
 
 namespace wcbot {
 namespace wecom {
@@ -21,12 +20,15 @@ bool TextServerMessage::ValidateFields() const {
   return true;
 }
 
-void TextServerMessage::GetXml(MemoryBuffer *Output) const {
-  MEMBUF_APP(Output, "<xml>");
-  MEMBUF_APP(Output, "<MsgType>text</MsgType>");
+#define STR_APP(obj, sl) (obj.append(sl, sizeof(sl) - 1))
+
+std::string TextServerMessage::GetXml() const {
+  std::string Xml;
+  STR_APP(Xml, "<xml>");
+  STR_APP(Xml, "<MsgType>text</MsgType>");
   // visible_to_user
   if (!VisibleToUser.empty()) {
-    MEMBUF_APP(Output, "<VisibleToUser>");
+    STR_APP(Xml, "<VisibleToUser>");
     thread_local std::string Buffer;
     Buffer.clear();
     for (const auto &Item : VisibleToUser) {
@@ -34,36 +36,37 @@ void TextServerMessage::GetXml(MemoryBuffer *Output) const {
       Buffer.push_back('|');
     }
     Buffer.pop_back();  // omit last |
-    Output->Append(Buffer);
-    MEMBUF_APP(Output, "</VisibleToUser>");
+    Xml.append(Buffer);
+    STR_APP(Xml, "</VisibleToUser>");
   }
-  MEMBUF_APP(Output, "<Text>");
+  STR_APP(Xml, "<Text>");
   // content
-  MEMBUF_APP(Output, "<Content><![CDATA[");
-  Output->Append(Content);
-  MEMBUF_APP(Output, "]]></Content>");
+  STR_APP(Xml, "<Content><![CDATA[");
+  Xml.append(Content);
+  STR_APP(Xml, "]]></Content>");
   // mentioned list
   if (!MentionedList.empty()) {
-    MEMBUF_APP(Output, "<MentionedList>");
+    STR_APP(Xml, "<MentionedList>");
     for (const auto &Item : MentionedList) {
-      MEMBUF_APP(Output, "<Item><![CDATA[");
-      Output->Append(Item);
-      MEMBUF_APP(Output, "]]></Item>");
+      STR_APP(Xml, "<Item><![CDATA[");
+      Xml.append(Item);
+      STR_APP(Xml, "]]></Item>");
     }
-    MEMBUF_APP(Output, "</MentionedList>");
+    STR_APP(Xml, "</MentionedList>");
   }
   // mentioned mobile list
   if (!MentionedMobileList.empty()) {
-    MEMBUF_APP(Output, "<MentionedMobileList>");
+    STR_APP(Xml, "<MentionedMobileList>");
     for (const auto &Item : MentionedList) {
-      MEMBUF_APP(Output, "<Item><![CDATA[");
-      Output->Append(Item);
-      MEMBUF_APP(Output, "]]></Item>");
+      STR_APP(Xml, "<Item><![CDATA[");
+      Xml.append(Item);
+      STR_APP(Xml, "]]></Item>");
     }
-    MEMBUF_APP(Output, "</MentionedMobileList>");
+    STR_APP(Xml, "</MentionedMobileList>");
   }
-  MEMBUF_APP(Output, "</Text>");
-  MEMBUF_APP(Output, "</xml>");
+  STR_APP(Xml, "</Text>");
+  STR_APP(Xml, "</xml>");
+  return Xml;
 }
 
 std::string TextServerMessage::GetJson() const {

@@ -1,6 +1,8 @@
 #include "HttpHandlerJob.h"
 
 #include <cinttypes>
+#include <cstdio>
+#include <ctime>
 
 #include <map>
 #include <sstream>
@@ -173,23 +175,19 @@ void HttpHandlerJob::DoInvokeCallbackJobStart() {
   InvokeChild(Child);
 }
 
-static MemoryBuffer* GetHttpResponseBufferByCallbackMessage(MessageCallbackJob* J) {
-  MemoryBuffer* MB = MemoryBuffer::Create();
-  MEMBUF_APP(MB, "HTTP/1.1 200 OK\r\nContent-Length: ");
-  auto CLStartPosition = MB->GetBase() + MB->GetLength();
-  // there's 12 spaces, body up to 16 GiB
-  MEMBUF_APP(MB, "              \r\n\r\n");
-  auto Start = MB->GetLength();
-  J->GetResponse()->GetXml(MB);
-  auto BodyLength = MB->GetLength() - Start;
-  char PrintBuffer[32];
-  int PrintLength = snprintf(PrintBuffer, sizeof(PrintBuffer), "%" PRIu64, BodyLength);
-  strncpy(CLStartPosition, PrintBuffer, PrintLength);
-#ifdef DEBUG
-  MB->SetNullTerminated();
-  LOG_DEBUG("rsp body: %s", MB->GetBase());
-#endif
-  return MB;
+static bool GetResponseBodyByCallbackMessage(MessageCallbackJob* J, std::string& Encrypted) {
+  auto Xml = J->GetResponse()->GetXml();
+  char Nonce[32];
+  char Timestamp[32];
+  snprintf(Nonce, sizeof(Nonce), "%d", rand());
+  snprintf(Timestamp, sizeof(Timestamp), "%ld", time(nullptr));
+  int Ret = Engine::Get().GetImpl().Cryptor->EncryptMsg(Xml, Timestamp, Nonce, Encrypted);
+  if (Ret != 0) {
+    LOG_ERROR("WXBizMsgCrypt::EncryptMsg failed, ret=%d, nonce=%s, timestamp=%s", Ret, Nonce,
+              Timestamp);
+    return false;
+  }
+  return true;
 }
 
 void HttpHandlerJob::DoInvokeCallbackJobFinish(Job* ChildBase) {
@@ -208,9 +206,15 @@ void HttpHandlerJob::DoInvokeCallbackJobFinish(Job* ChildBase) {
       this->Response200OK("");
       break;
     }
-    // get the XML and reply
-    auto* MB = GetHttpResponseBufferByCallbackMessage(Child);
-    this->SendData(MB, kDisconnect);
+    // get the XML, encrypt and reply
+    thread_local std::string Encrypted;
+    Encrypted.clear();
+    bool Check = GetResponseBodyByCallbackMessage(Child, Encrypted);
+    if (Check) {
+      this->Response200OK(Encrypted);
+    } else {
+      this->Response500InternalServerError();
+    }
   } while (false);
   State = StateEnum::kFinish;
   this->Do();

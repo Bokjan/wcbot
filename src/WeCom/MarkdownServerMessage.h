@@ -25,7 +25,7 @@ class MarkdownServerMessage final : public ServerMessage, public XmlServerMessag
   std::vector<Action> Actions;  // max 20
   std::vector<std::string> VisibleToUser;
   MarkdownServerMessage() : AtShortName(false) {}
-  void GetXml(MemoryBuffer *Output) const override;
+  std::string GetXml() const override;
   std::string GetJson() const override;
   bool ValidateFields() const override;
 };

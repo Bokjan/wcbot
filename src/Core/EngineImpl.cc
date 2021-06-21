@@ -1,5 +1,8 @@
 #include "EngineImpl.h"
 
+#include <cstdlib>
+#include <ctime>
+
 #include <curl/curl.h>
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
@@ -159,6 +162,7 @@ EngineImpl::EngineImpl()
       CbHandlerCreator(nullptr),
       Cryptor(nullptr) {
   main_impl::g_EImpl = this;
+  srand(time(nullptr));
 }
 
 EngineImpl::~EngineImpl() { this->Finalize(); }

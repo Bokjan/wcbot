@@ -6,7 +6,6 @@
 #include <rapidjson/writer.h>
 
 #include "../Utility/Logger.h"
-#include "../Utility/MemoryBuffer.h"
 
 namespace wcbot {
 namespace wecom {
@@ -119,12 +118,15 @@ std::string MarkdownServerMessage::GetJson() const {
   return std::string(SB.GetString(), SB.GetSize());
 }
 
-void MarkdownServerMessage::GetXml(MemoryBuffer *Output) const {
-  MEMBUF_APP(Output, "<xml>");
-  MEMBUF_APP(Output, "<MsgType>text</MsgType>");
+#define STR_APP(obj, sl) (obj.append(sl, sizeof(sl) - 1))
+
+std::string MarkdownServerMessage::GetXml() const {
+  std::string Xml;
+  STR_APP(Xml, "<xml>");
+  STR_APP(Xml, "<MsgType>text</MsgType>");
   // visible_to_user
   if (!VisibleToUser.empty()) {
-    MEMBUF_APP(Output, "<VisibleToUser>");
+    STR_APP(Xml, "<VisibleToUser>");
     thread_local std::string Buffer;
     Buffer.clear();
     for (const auto &Item : VisibleToUser) {
@@ -132,53 +134,54 @@ void MarkdownServerMessage::GetXml(MemoryBuffer *Output) const {
       Buffer.push_back('|');
     }
     Buffer.pop_back();  // omit last |
-    Output->Append(Buffer);
-    MEMBUF_APP(Output, "</VisibleToUser>");
+    Xml.append(Buffer);
+    STR_APP(Xml, "</VisibleToUser>");
   }
-  MEMBUF_APP(Output, "<Markdown>");
+  STR_APP(Xml, "<Markdown>");
   // content
-  MEMBUF_APP(Output, "<Content><![CDATA[");
-  Output->Append(Content);
-  MEMBUF_APP(Output, "]]></Content>");
+  STR_APP(Xml, "<Content><![CDATA[");
+  Xml.append(Content);
+  STR_APP(Xml, "]]></Content>");
   // attachment
   if (!Actions.empty()) {
-    MEMBUF_APP(Output, "<Attachment>");
-    MEMBUF_APP(Output, "<CallbackId><![CDATA[");
-    Output->Append(CallbackId);
-    MEMBUF_APP(Output, "]]></CallbackId>");
+    STR_APP(Xml, "<Attachment>");
+    STR_APP(Xml, "<CallbackId><![CDATA[");
+    Xml.append(CallbackId);
+    STR_APP(Xml, "]]></CallbackId>");
     for (const auto &Item : Actions) {
-      MEMBUF_APP(Output, "<Actions>");
-      MEMBUF_APP(Output, "<Name><![CDATA[");
-      Output->Append(Item.Name);
-      MEMBUF_APP(Output, "]]></Name>");
-      MEMBUF_APP(Output, "<Value><![CDATA[");
-      Output->Append(Item.Value);
-      MEMBUF_APP(Output, "]]></Value>");
-      MEMBUF_APP(Output, "<Text><![CDATA[");
-      Output->Append(Item.Text);
-      MEMBUF_APP(Output, "]]></Text>");
-      MEMBUF_APP(Output, "<Type>button</Type>");
+      STR_APP(Xml, "<Actions>");
+      STR_APP(Xml, "<Name><![CDATA[");
+      Xml.append(Item.Name);
+      STR_APP(Xml, "]]></Name>");
+      STR_APP(Xml, "<Value><![CDATA[");
+      Xml.append(Item.Value);
+      STR_APP(Xml, "]]></Value>");
+      STR_APP(Xml, "<Text><![CDATA[");
+      Xml.append(Item.Text);
+      STR_APP(Xml, "]]></Text>");
+      STR_APP(Xml, "<Type>button</Type>");
       constexpr size_t BufferSize = 8;
       constexpr size_t ColorHexLength = 6;
       thread_local char TextColorCStr[BufferSize];
       thread_local char BorderColorCStr[BufferSize];
       snprintf(TextColorCStr, sizeof(TextColorCStr), "%06X", Item.TextColor);
       snprintf(BorderColorCStr, sizeof(BorderColorCStr), "%06X", Item.BorderColor);
-      MEMBUF_APP(Output, "<BorderColor><![CDATA[");
-      Output->Append(BorderColorCStr, ColorHexLength);
-      MEMBUF_APP(Output, "]]></BorderColor>");
-      MEMBUF_APP(Output, "<TextColor><![CDATA[");
-      Output->Append(TextColorCStr, ColorHexLength);
-      MEMBUF_APP(Output, "]]></TextColor>");
-      MEMBUF_APP(Output, "<ReplaceText><![CDATA[");
-      Output->Append(Item.ReplaceText);
-      MEMBUF_APP(Output, "]]></ReplaceText>");
-      MEMBUF_APP(Output, "</Actions>");
+      STR_APP(Xml, "<BorderColor><![CDATA[");
+      Xml.append(BorderColorCStr, ColorHexLength);
+      STR_APP(Xml, "]]></BorderColor>");
+      STR_APP(Xml, "<TextColor><![CDATA[");
+      Xml.append(TextColorCStr, ColorHexLength);
+      STR_APP(Xml, "]]></TextColor>");
+      STR_APP(Xml, "<ReplaceText><![CDATA[");
+      Xml.append(Item.ReplaceText);
+      STR_APP(Xml, "]]></ReplaceText>");
+      STR_APP(Xml, "</Actions>");
     }
-    MEMBUF_APP(Output, "</Attachment>");
+    STR_APP(Xml, "</Attachment>");
   }
-  MEMBUF_APP(Output, "</Markdown>");
-  MEMBUF_APP(Output, "</xml>");
+  STR_APP(Xml, "</Markdown>");
+  STR_APP(Xml, "</xml>");
+  return Xml;
 }
 
 }  // namespace wecom

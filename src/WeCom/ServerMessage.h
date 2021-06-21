@@ -5,8 +5,6 @@
 
 namespace wcbot {
 
-class MemoryBuffer;
-
 namespace wecom {
 
 constexpr auto kChatIdAll = "@all";
@@ -27,7 +25,7 @@ class ServerMessage {
 class XmlServerMessage {
  public:
   virtual ~XmlServerMessage() = default;
-  virtual void GetXml(MemoryBuffer *Output) const = 0;
+  virtual std::string GetXml() const = 0;
 };
 
 }  // namespace wecom
