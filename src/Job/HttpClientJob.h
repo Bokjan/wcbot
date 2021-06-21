@@ -20,8 +20,6 @@ class HttpClientJob final : public IOJob {
   virtual void Do(Job* Trigger = nullptr) override;
   virtual void OnTimeout() override;
 
-  void DeleteThis() { delete this; }
-
   int TimeoutMS;
   HttpRequest Request;
   HttpResponse Response;

@@ -32,10 +32,25 @@ SET(COMP_FILES  ${COMP_FILES}
 SET(COMP_FILES  ${COMP_FILES}
                 ThirdParty/tinyxml2/tinyxml2.cpp
                 ThirdParty/WXBizMsgCrypt/WXBizMsgCrypt.cpp)
-# SET(COMP_FILES ${COMP_FILES} "../ThirdParty/md5/md5.cc")
-# SET(COMP_FILES ${COMP_FILES} "../ThirdParty/cc-base64/base64.cc")
-# SET(COMP_FILES ${COMP_FILES} "../ThirdParty/tinyxml2/tinyxml2.cc")
+
+SET(INSTALL_HEADERS_CORE    Core/Engine.h)
+SET(INSTALL_HEADERS_CODEC   Codec/Codec.h)
+SET(INSTALL_HEADERS_UTILITY Utility/Common.h Utility/CronTrigger.h Utility/HttpPackage.h
+                            Utility/Logger.h Utility/MemoryBuffer.h Utility/TcpMemoryBuffer.h)
+SET(INSTALL_HEADERS_JOB     Job/Job.h Job/HttpClientJob.h Job/SilentPushJob.h
+                            Job/WeComUploadJob.h)
+SET(INSTALL_HEADERS_WECOM   WeCom/ServerMessage.h WeCom/ClientMessage.h
+                            WeCom/TextServerMessage.h WeCom/MarkdownServerMessage.h
+                            WeCom/ImageServerMessage.h WeCom/NewsServerMessage.h
+                            WeCom/FileServerMessage.h WeCom/MiniProgramServerMessage.h)
 
 ADD_LIBRARY(wcbot STATIC ${COMP_FILES})
-INSTALL(DIRECTORY ./ DESTINATION include/wcbot FILES_MATCHING PATTERN "*.h")
+
+# INSTALL(DIRECTORY ./ DESTINATION include/wcbot FILES_MATCHING PATTERN "*.h")
+INSTALL(FILES ${INSTALL_HEADERS_CORE} DESTINATION include/wcbot/Core)
+INSTALL(FILES ${INSTALL_HEADERS_CODEC} DESTINATION include/wcbot/Codec)
+INSTALL(FILES ${INSTALL_HEADERS_JOB} DESTINATION include/wcbot/Job)
+INSTALL(FILES ${INSTALL_HEADERS_WECOM} DESTINATION include/wcbot/WeCom)
+INSTALL(FILES ${INSTALL_HEADERS_UTILITY} DESTINATION include/wcbot/Utility)
+
 INSTALL(TARGETS wcbot ARCHIVE DESTINATION lib)

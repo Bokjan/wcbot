@@ -13,7 +13,7 @@ namespace worker_impl {
 thread_local ThreadContext *g_ThisThread = nullptr;
 static void OnTickTimer(uv_timer_t *Timer);
 static void OnItcAsyncSend(uv_async_t *Async);
-static void OnSignalInterrupt(uv_signal_t *Signal, int SigNum);
+static void OnSignal_Exit(uv_signal_t *Signal, int SigNum);
 namespace curl {
 static int SocketFunction(CURL *Easy, curl_socket_t CurlSocket, int Action, void *UserPtr,
                           void *ContextPtr);
@@ -47,9 +47,12 @@ void ThreadContext::Initialize() {
   uv_async_init(&UvLoop, &MainToWorkerAsync, worker_impl::OnItcAsyncSend);
   MainToWorkerAsync.data = this;
   // signal
-  uv_signal_init(&UvLoop, &UvSignal);
-  UvSignal.data = this;
-  uv_signal_start(&UvSignal, worker_impl::OnSignalInterrupt, SIGINT);
+  uv_signal_init(&UvLoop, &UvSignal_SIGINT);
+  UvSignal_SIGINT.data = this;
+  uv_signal_start(&UvSignal_SIGINT, worker_impl::OnSignal_Exit, SIGINT);
+  uv_signal_init(&UvLoop, &UvSignal_SIGTERM);
+  UvSignal_SIGTERM.data = this;
+  uv_signal_start(&UvSignal_SIGTERM, worker_impl::OnSignal_Exit, SIGTERM);
   // cURL
   InitializeCurlMulti();
   uv_timer_init(&UvLoop, &UvCurlTimer);
@@ -89,10 +92,10 @@ static void OnItcAsyncSend(uv_async_t *Async) {
   LOG_TRACE("thread #%d processed %d ITC event(s)", Self->ThreadIndex, i);
 }
 
-static void OnSignalInterrupt(uv_signal_t *Signal, int SigNum) {
+static void OnSignal_Exit(uv_signal_t *Signal, int SigNum) {
   ThreadContext *Self = reinterpret_cast<ThreadContext *>(Signal->data);
   uv_stop(&Self->UvLoop);
-  LOG_ALL("SIGINT captured, worker thread %02d", Self->ThreadIndex);
+  LOG_ALL("Signal %d captured, worker thread #%d", SigNum, Self->ThreadIndex);
 }
 
 static void OnTickTimer(uv_timer_t *Timer) {

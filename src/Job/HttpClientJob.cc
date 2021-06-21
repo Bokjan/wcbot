@@ -86,7 +86,7 @@ void HttpClientJob::OnTimeout() {
   int Running;
   curl_multi_socket_action(worker_impl::g_ThisThread->CurlMultiHandle, CURL_SOCKET_TIMEOUT, 0,
                            &Running);
-  ErrCode = kErrCodeTimeout;
+  ErrCode = kErrTimeout;
   SafeParent()->Do(this);
   DeleteThis();
 }

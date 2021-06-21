@@ -20,7 +20,8 @@ class ThreadContext final {
   uv_loop_t UvLoop;        // uv_loop for this thread
   uv_timer_t UvTickTimer;  // uv_timer to do tick
   uv_thread_t UvThread;    // the thread structure
-  uv_signal_t UvSignal;    // signal handler
+  uv_signal_t UvSignal_SIGINT;    // signal handler
+  uv_signal_t UvSignal_SIGTERM;   // signal handler
   ItcQueue MainToWorkerQueue;
   ItcQueue WorkerToMainQueue;
   uv_async_t MainToWorkerAsync;

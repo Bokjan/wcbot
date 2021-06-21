@@ -20,7 +20,7 @@ static void OnTcpClose(uv_handle_t *Handle);
 static void OnNewConnection(uv_stream_t *Handle, int Status);
 static void AllocateBuffer(uv_handle_t *Handle, size_t SuggestedSize, uv_buf_t *Buffer);
 static void OnItcAsyncSend(uv_async_t *Async);
-static void OnSignalInterrupt(uv_signal_t *Signal, int SigNum);
+static void OnSignal_Exit(uv_signal_t *Signal, int SigNum);
 static void OnCronTimerTick(uv_timer_t *Timer);
 }  // namespace main_impl
 
@@ -73,9 +73,7 @@ static bool InternalParseConfig(BotConfig &Config, const rapidjson::Document &Js
   Config.ParseOk = false;
   do {
     // Bot
-    if (!Json["Bot"].IsObject()) {
-      break;
-    }
+    BREAK_ON_FALSE(Json.HasMember("Bot") && Json["Bot"].IsObject());
     const rapidjson::Value &Bot = Json["Bot"];
     BREAK_ON_FALSE(RapidJsonGetString(Bot, "WebHookKey", Config.Bot.WebHookKey));
     BREAK_ON_FALSE(RapidJsonGetString(Bot, "WebHookPrefix", Config.Bot.WebHookPrefix));
@@ -91,9 +89,7 @@ static bool InternalParseConfig(BotConfig &Config, const rapidjson::Document &Js
         .append("&type=file");
 
     // Http
-    if (!Json["Http"].IsObject()) {
-      break;
-    }
+    BREAK_ON_FALSE(Json.HasMember("Http") && Json["Http"].IsObject());
     const rapidjson::Value &Http = Json["Http"];
     BREAK_ON_FALSE(RapidJsonGetString(Http, "BindIpv4", Config.Http.BindIpv4));
     if (Http.HasMember("BindPort") && Http["BindPort"].IsInt()) {
@@ -103,9 +99,7 @@ static bool InternalParseConfig(BotConfig &Config, const rapidjson::Document &Js
     }
 
     // Network
-    if (!Json["Network"].IsObject()) {
-      break;
-    }
+    BREAK_ON_FALSE(Json.HasMember("Network") && Json["Network"].IsObject());
     const rapidjson::Value &Network = Json["Network"];
     BREAK_ON_FALSE(
         RapidJsonGetUInt64(Network, "MaxRecvBuffLength", Config.Network.MaxRecvBuffLength));
@@ -287,9 +281,14 @@ bool EngineImpl::InitializeWorkerThreads() {
 }
 
 bool EngineImpl::InitializeSignalHandler() {
-  uv_signal_init(this->UvLoop, &this->UvSignal);
-  this->UvSignal.data = this;
-  uv_signal_start(&this->UvSignal, main_impl::OnSignalInterrupt, SIGINT);
+  // SIGINT
+  uv_signal_init(this->UvLoop, &this->UvSignal_SIGINT);
+  this->UvSignal_SIGINT.data = this;
+  uv_signal_start(&this->UvSignal_SIGINT, main_impl::OnSignal_Exit, SIGINT);
+  // SIGTERM
+  uv_signal_init(this->UvLoop, &this->UvSignal_SIGTERM);
+  this->UvSignal_SIGTERM.data = this;
+  uv_signal_start(&this->UvSignal_SIGTERM, main_impl::OnSignal_Exit, SIGTERM);
   return true;
 }
 
@@ -394,10 +393,10 @@ static void OnItcAsyncSend(uv_async_t *Async) {
   LOG_TRACE("main thread processed %d ITC event(s) sent from #%d", i, Worker->ThreadIndex);
 }
 
-static void OnSignalInterrupt(uv_signal_t *Signal, int SigNum) {
+static void OnSignal_Exit(uv_signal_t *Signal, int SigNum) {
   EngineImpl *EImpl = reinterpret_cast<EngineImpl *>(Signal->data);
   uv_stop(EImpl->UvLoop);
-  LOG_ALL("SIGINT captured, main thread");
+  LOG_ALL("Signal %d captured, main thread", SigNum);
 }
 
 struct UvWriteRequest {

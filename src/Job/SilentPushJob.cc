@@ -42,7 +42,7 @@ void SilentPushJob::DoSendReq() {
 void SilentPushJob::DoSendRsp(Job *RspBase) {
   // check
   do {
-    if (ErrCode == kErrCodeTimeout) {
+    if (ErrCode == kErrTimeout) {
       LOG_WARN("SilentPushJob timeout");
       break;
     }

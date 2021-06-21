@@ -12,7 +12,6 @@ class WeComUploadJob final : public Job {
   WeComUploadJob(const WeComUploadJob &) = delete;
   WeComUploadJob(const WeComUploadJob &&) = delete;
   void Do(Job *Trigger = nullptr);
-  void DeleteThis() { delete this; }
 
   const void *Data;       // IN
   uint64_t Length;        // IN
@@ -22,10 +21,10 @@ class WeComUploadJob final : public Job {
   std::string Msg;        // OUT
 
   enum Error : int {
-    kErrTooLarge = -1,
-    kRspFailed = -2,
-    kRspPkgInvalid = -3,
-    kRspNoMediaId = -4
+    kErrTooLarge = 1,
+    kErrRspFailed = 2,
+    kErrRspPkgInvalid = 3,
+    kErrRspNoMediaId = 4
   };
 
  private:

@@ -51,7 +51,8 @@ class EngineImpl final {
  public:
   bool IsFork;
   uv_loop_t* UvLoop;
-  uv_signal_t UvSignal;
+  uv_signal_t UvSignal_SIGINT;
+  uv_signal_t UvSignal_SIGTERM;
 
   BotConfig Config;
   std::vector<Codec*> ServerCodecs;

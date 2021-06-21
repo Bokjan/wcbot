@@ -69,7 +69,7 @@ void WeComUploadJob::DoUploadMediaRsp(Job *RspBase) {
   // check
   auto Rsp = dynamic_cast<HttpClientJob *>(RspBase);
   do {
-    if (ErrCode == kErrCodeTimeout) {
+    if (ErrCode == kErrTimeout) {
       LOG_WARN("%s", "WeComUploadJob timeout!");
       break;
     }
@@ -78,7 +78,7 @@ void WeComUploadJob::DoUploadMediaRsp(Job *RspBase) {
     if (Response.StatusCode == 0 || Response.Body.empty()) {
       LOG_ERROR("%s", "WeComUploadJob, StatusCode=%d, BodyLen=%u, abnormal!", Response.StatusCode,
                 Response.Body.length());
-      ErrCode = kRspFailed;
+      ErrCode = kErrRspFailed;
       break;
     }
     rapidjson::Document Json;
@@ -86,7 +86,7 @@ void WeComUploadJob::DoUploadMediaRsp(Job *RspBase) {
     if (!Json.IsObject() || !Json.HasMember("errcode") || !Json.HasMember("errmsg") ||
         !Json["errcode"].IsInt() || !Json["errmsg"].IsString()) {
       LOG_WARN("WeComUploadJob rsp invalid, body: %s", Response.Body.c_str());
-      ErrCode = kRspPkgInvalid;
+      ErrCode = kErrRspPkgInvalid;
       break;
     }
     if (Json["errcode"].GetInt() != 0) {
@@ -97,7 +97,7 @@ void WeComUploadJob::DoUploadMediaRsp(Job *RspBase) {
       break;
     }
     if (!Json.HasMember("media_id") || !Json["media_id"].IsString()) {
-      ErrCode = kRspNoMediaId;
+      ErrCode = kErrRspNoMediaId;
       break;
     }
     MediaId = Json["media_id"].GetString();

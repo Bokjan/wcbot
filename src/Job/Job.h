@@ -13,6 +13,7 @@ class Job {
   Job(const Job &&) = delete;
   virtual ~Job();
   virtual void Do(Job *Trigger = nullptr);
+  void DeleteThis() { delete this; }
   void SetParent(Job *P) { Parent = P; }
   void ResetParent() { Parent = nullptr; }
   void RemoveChild(Job *J);
@@ -21,7 +22,7 @@ class Job {
   void InvokeChild(Job *Child, Job *DoArgument = nullptr);
 
  public:
-  enum ErrCodeEnum { kErrCodeTimeout = 9999 };
+  enum ErrEnum { kErrTimeout = -9999 };
   int ErrCode;
 
  private:

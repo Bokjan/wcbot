@@ -16,7 +16,6 @@ class SilentPushJob final : public Job {
   SilentPushJob(const SilentPushJob &) = delete;
   SilentPushJob(const SilentPushJob &&) = delete;
   void Do(Job *Trigger = nullptr);
-  void DeleteThis() { delete this; }
 
  private:
   enum class StateEnum { kSendReq, kSendRsp };
