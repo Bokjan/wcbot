@@ -13,7 +13,7 @@ class HttpClientJob final : public IOJob {
     uint32_t JobId;
   };
 
-  explicit HttpClientJob(Job* Parent);
+  HttpClientJob();
   HttpClientJob(const HttpClientJob&) = delete;
   HttpClientJob(const HttpClientJob&&) = delete;
 

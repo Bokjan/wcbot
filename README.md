@@ -14,7 +14,7 @@ Worker model|Asynchronous (state machine)|Synchronous, thread-blocking
 Performance|High|Low
 Extensibility|High|N/A
 
-This time, we develop `wcbot` from scratch. Performance and R&D efficiency are improved a lot. `tlinux` native means there's only a gcc 4.8.5 (C++11). 
+This time, we develop `wcbot` from scratch. Performance and R&D efficiency are improved a lot. `tlinux` native means there's only a gcc 4.8.5 (C++11) provided. 
 
 # Prerequisites
 - CMake 3.1 +
@@ -30,7 +30,7 @@ Other 3rd party libraries are distributed as `git submodule`s.
 Just `cmake` it. 
 
 # Run
-The final artifact is a executable (built by yourself). Assume the executable is `wcbotd`, and there's a config file named `config.json` in the same directory. 
+The final artifact is an executable (built by yourself). Assume the executable is `wcbotd`, and there's a config file named `config.json` in the same directory. 
 
 Run as daemon:
 ```bash

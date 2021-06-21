@@ -11,7 +11,7 @@
 namespace wcbot {
 
 WeComUploadJob::WeComUploadJob(Job *Receiver)
-    : Job(Receiver), Code(0), State(StateEnum::kUploadMediaReq) {}
+    : Job(), Code(0), State(StateEnum::kUploadMediaReq) {}
 
 void WeComUploadJob::Do(Job *Trigger) {
   Job::Do(Trigger);
@@ -45,7 +45,7 @@ void WeComUploadJob::DoUploadMediaReq() {
     this->Do();
     return;
   }
-  auto J = new HttpClientJob(this);
+  auto J = new HttpClientJob();
   auto &Request = J->Request;
   Request.SetUrl(Engine::Get().GetImpl().Config.Bot.WebHookUploadMedia);
   Request.Method = HttpRequest::MethodEnum::kPost;

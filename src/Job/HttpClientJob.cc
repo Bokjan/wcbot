@@ -62,8 +62,7 @@ size_t HeaderFunction(char *Ptr, size_t Size, size_t NItems, void *UserData) {
 }
 }  // namespace http_client_impl
 
-HttpClientJob::HttpClientJob(Job *Parent)
-    : IOJob(Parent), TimeoutMS(1000), State(StateEnum::kCurlStart) {}
+HttpClientJob::HttpClientJob() : IOJob(), TimeoutMS(1000), State(StateEnum::kCurlStart) {}
 
 void HttpClientJob::Do(Job *Trigger) {
   Job::Do(Trigger);

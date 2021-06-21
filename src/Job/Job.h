@@ -8,7 +8,7 @@ namespace wcbot {
 
 class Job {
  public:
-  explicit Job(Job *Parent = nullptr);
+  Job();
   Job(const Job &) = delete;
   Job(const Job &&) = delete;
   virtual ~Job();
@@ -31,7 +31,7 @@ class Job {
 
 class IOJob : public Job {
  public:
-  IOJob(Job *Parent = nullptr) : Job(Parent) {}
+  IOJob(Job *Parent = nullptr) : Job() {}
   void JoinDelayQueue(int TimeoutMS);
   virtual void OnTimeout() = 0;
   uint32_t GetJobId() { return JobId; }

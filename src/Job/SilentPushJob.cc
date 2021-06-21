@@ -29,7 +29,7 @@ void SilentPushJob::Do(Job *Trigger) {
 
 void SilentPushJob::DoSendReq() {
   constexpr int kTimeoutMS = 5000;
-  auto J = new HttpClientJob(this);
+  auto J = new HttpClientJob();
   J->Request.SetUrl(Engine::Get().GetImpl().Config.Bot.WebHookSend);
   J->Request.Headers.insert(std::make_pair("Content-Type", "application/json"));
   J->Request.Body = std::move(Message->GetJson());

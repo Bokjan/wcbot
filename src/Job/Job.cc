@@ -7,13 +7,13 @@ namespace wcbot {
 namespace job_impl {
 class GuardJob final : public Job {
  public:
-  GuardJob() : Job(nullptr) {}
+  GuardJob() : Job() {}
   void Do(Job *Trigger) override {}
 };
-static thread_local GuardJob GuardJobObject;
+static GuardJob GuardJobObject;
 }  // namespace job_impl
 
-Job::Job(Job *Parent) : ErrCode(0), Parent(Parent) {}
+Job::Job() : ErrCode(0) {}
 
 Job::~Job() {
   for (auto ChildJob : this->Children) {
