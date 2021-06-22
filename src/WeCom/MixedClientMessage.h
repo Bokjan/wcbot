@@ -5,10 +5,11 @@
 namespace wcbot {
 namespace wecom {
 
-class TextClientMessage : public ClientMessage {
+class MixedClientMessage : public ClientMessage {
  public:
-  explicit TextClientMessage(tinyxml2::XMLElement *Root);
+  explicit MixedClientMessage(tinyxml2::XMLElement *Root);
   std::string Content;
+  std::string ImageUrl;
 };
 
 }  // namespace wecom

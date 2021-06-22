@@ -31,10 +31,10 @@ class ClientMessage {
 
 #define CLIENT_MESSAGE_DERIVED_GUARD(o) \
   do {                                  \
-    if ((o).HasExtractError) {              \
+    if ((o).HasExtractError) {          \
       return;                           \
     } else {                            \
-      (o).HasExtractError = true;           \
+      (o).HasExtractError = true;       \
     }                                   \
   } while (false)
 

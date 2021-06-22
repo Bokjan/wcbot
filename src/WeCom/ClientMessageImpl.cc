@@ -5,6 +5,10 @@
 #include "../ThirdParty/tinyxml2/tinyxml2.h"
 #include "../Utility/Logger.h"
 
+#include "AttachmentClientMessage.h"
+#include "EventClientMessage.h"
+#include "ImageClientMessage.h"
+#include "MixedClientMessage.h"
 #include "TextClientMessage.h"
 
 #define STRNCMP_CCPTR_LITERAL(p, l) (strncmp(p, l, sizeof(l) - 1) == 0)
@@ -37,9 +41,23 @@ ClientMessage* GenerateClientMessageByXml(const std::string& XmlStr) {
     // dispatch
     // LOG_DEBUG("MsgType->GetText()=%s", MsgType->GetText());
     if (STRNCMP_CCPTR_LITERAL(MsgType->GetText(), "text")) {
-      return new TextClientMessage(Root);
+      Msg = new TextClientMessage(Root);
+    } else if (STRNCMP_CCPTR_LITERAL(MsgType->GetText(), "image")) {
+      Msg = new ImageClientMessage(Root);
+    } else if (STRNCMP_CCPTR_LITERAL(MsgType->GetText(), "event")) {
+      Msg = new EventClientMessage(Root);
+    } else if (STRNCMP_CCPTR_LITERAL(MsgType->GetText(), "attachment")) {
+      Msg = new AttachmentClientMessage(Root);
+    } else if (STRNCMP_CCPTR_LITERAL(MsgType->GetText(), "mixed")) {
+      Msg = new MixedClientMessage(Root);
     }
   } while (false);
+  if (Msg != nullptr) {
+    if (Msg->HasExtractError) {
+      delete Msg;
+      Msg = nullptr;
+    }
+  }
   return Msg;
 }
 

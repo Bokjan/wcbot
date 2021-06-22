@@ -25,8 +25,10 @@ SET(COMP_FILES  ${COMP_FILES}
                 WeCom/TextServerMessage.cc WeCom/MarkdownServerMessage.cc 
                 WeCom/ImageServerMessage.cc WeCom/NewsServerMessage.cc 
                 WeCom/MiniProgramServerMessage.cc WeCom/FileServerMessage.cc 
-                WeCom/ClientMessage.cc WeCom/ClientMessageImpl.cc
-                WeCom/TextClientMessage.cc)
+                WeCom/ClientMessage.cc
+                WeCom/TextClientMessage.cc WeCom/ImageClientMessage.cc
+                WeCom/EventClientMessage.cc WeCom/AttachmentClientMessage.cc
+                WeCom/MixedClientMessage.cc WeCom/ClientMessageImpl.cc)
 SET(COMP_FILES  ${COMP_FILES}
                 Utility/Common.cc Utility/Logger.cc Utility/HttpPackage.cc
                 Utility/MemoryBuffer.cc Utility/CronTrigger.cc)
@@ -44,7 +46,9 @@ SET(INSTALL_HEADERS_WECOM   WeCom/ServerMessage.h WeCom/ClientMessage.h
                             WeCom/TextServerMessage.h WeCom/MarkdownServerMessage.h
                             WeCom/ImageServerMessage.h WeCom/NewsServerMessage.h
                             WeCom/FileServerMessage.h WeCom/MiniProgramServerMessage.h
-                            WeCom/TextClientMessage.h)
+                            WeCom/TextClientMessage.h WeCom/ImageClientMessage.h
+                            WeCom/EventClientMessage.h WeCom/AttachmentClientMessage.h
+                            WeCom/MixedClientMessage.h)
 
 ADD_LIBRARY(wcbot STATIC ${COMP_FILES})
 
