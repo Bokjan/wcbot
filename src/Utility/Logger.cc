@@ -12,8 +12,8 @@ namespace wcbot {
 namespace logger_internal {
 StderrLogger DefaultStderrLogger;
 Logger *g_Logger = &logger_internal::DefaultStderrLogger;
-const char *g_LogLevelCString[] = {"<OFF>  ", "<TRACE>", "<DEBUG>", "<INFO> ",
-                                   "<WARN> ", "<ERROR>", "<FATAL>", "<ALL>  "};
+const char *g_LogLevelCString[] = {"<UNKNOWN>", "<TRACE>", "<DEBUG>", "<INFO> ", "<WARN> ",
+                                   "<ERROR>",   "<FATAL>", "<ALL>  ", "<OFF>  "};
 }  // namespace logger_internal
 
 Logger::~Logger() {}
@@ -45,9 +45,8 @@ const char *Logger::GetTimeCString(LogLevel Level) {
 
 bool Logger::SetLevel(const std::string &Target) {
   static std::map<std::string, LogLevel> StrEnumMap = {
-      {"off", kOff},   {"trace", kTrace}, {"debug", kDebug}, {"info", kInfo},
-      {"warn", kWarn}, {"error", kError}, {"fatal", kFatal}, {"all", kAll},
-  };
+      {"trace", kTrace}, {"debug", kDebug}, {"info", kInfo}, {"warn", kWarn},
+      {"error", kError}, {"fatal", kFatal}, {"all", kAll},   {"off", kOff}};
   auto Finder = StrEnumMap.find(Target);
   if (Finder == StrEnumMap.end()) {
     return false;

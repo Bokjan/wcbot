@@ -11,9 +11,9 @@ namespace wecom {
 
 class ClientMessage {
  public:
-  ClientMessage(void) = delete;
-  virtual ~ClientMessage() = 0;
-  bool ParseCommon(tinyxml2::XMLElement *Root);
+  explicit ClientMessage(tinyxml2::XMLElement *Root);
+  virtual ~ClientMessage() = default;
+  void ParseCommon(tinyxml2::XMLElement *Root);
 
   enum class ChatTypeEnum : int { kUnknown, kSingle, kGroup };
 
@@ -29,6 +29,15 @@ class ClientMessage {
   } From;
   bool HasExtractError;
 };
+
+#define CLIENT_MESSAGE_DERIVED_GUARD(o) \
+  do {                                  \
+    if ((o).HasExtractError) {              \
+      return;                           \
+    } else {                            \
+      (o).HasExtractError = true;           \
+    }                                   \
+  } while (false)
 
 }  // namespace wecom
 }  // namespace wcbot

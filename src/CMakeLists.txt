@@ -25,7 +25,8 @@ SET(COMP_FILES  ${COMP_FILES}
                 WeCom/TextServerMessage.cc WeCom/MarkdownServerMessage.cc 
                 WeCom/ImageServerMessage.cc WeCom/NewsServerMessage.cc 
                 WeCom/MiniProgramServerMessage.cc WeCom/FileServerMessage.cc 
-                WeCom/ClientMessage.cc WeCom/ClientMessageImpl.cc)
+                WeCom/ClientMessage.cc WeCom/ClientMessageImpl.cc
+                WeCom/TextClientMessage.cc)
 SET(COMP_FILES  ${COMP_FILES}
                 Utility/Common.cc Utility/Logger.cc Utility/HttpPackage.cc
                 Utility/MemoryBuffer.cc Utility/CronTrigger.cc)
@@ -42,7 +43,8 @@ SET(INSTALL_HEADERS_JOB     Job/Job.h Job/HttpClientJob.h Job/SilentPushJob.h
 SET(INSTALL_HEADERS_WECOM   WeCom/ServerMessage.h WeCom/ClientMessage.h
                             WeCom/TextServerMessage.h WeCom/MarkdownServerMessage.h
                             WeCom/ImageServerMessage.h WeCom/NewsServerMessage.h
-                            WeCom/FileServerMessage.h WeCom/MiniProgramServerMessage.h)
+                            WeCom/FileServerMessage.h WeCom/MiniProgramServerMessage.h
+                            WeCom/TextClientMessage.h)
 
 ADD_LIBRARY(wcbot STATIC ${COMP_FILES})
 

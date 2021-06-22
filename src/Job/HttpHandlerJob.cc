@@ -70,14 +70,15 @@ void HttpHandlerJob::DoParseTcpPackage() {
 void HttpHandlerJob::DoDispatchRequest() {
   do {
     // callback message?
-    if (Request.Method == HttpRequest::MethodEnum::kPost && Request.Path == "/") {
+    if (Request.Method == HttpRequest::MethodEnum::kPost &&
+        Request.Path == Engine::Get().GetImpl().Config.Bot.CallbackPath) {
       State = StateEnum::kInvokeCallbackJobStart;
       this->Do();
       break;
     }
     // verify callback?
     if (Request.Method == HttpRequest::MethodEnum::kGet &&
-        Request.Path == Engine::Get().GetImpl().Config.Bot.CallbackVerifyPath) {
+        Request.Path == Engine::Get().GetImpl().Config.Bot.CallbackPath) {
       State = StateEnum::kVerifyCallbackSetting;
       this->Do();
       break;
@@ -159,6 +160,7 @@ void HttpHandlerJob::DoInvokeCallbackJobStart() {
     this->Do();
     return;
   }
+  // LOG_DEBUG("%s", Decrypted.c_str());
   // parse xml
   auto* ClientMsg = wecom::client_message_impl::GenerateClientMessageByXml(Decrypted);
   if (ClientMsg == nullptr) {
@@ -203,6 +205,7 @@ void HttpHandlerJob::DoInvokeCallbackJobFinish(Job* ChildBase) {
     if (Child->GetResponse() == nullptr) {
       // WeCom allows user to temporarily reply a empty 200 OK
       // then send the actual reply by `WebhookUrl`
+      LOG_TRACE("%s", "response 200 OK with empty body");
       this->Response200OK("");
       break;
     }
@@ -221,6 +224,7 @@ void HttpHandlerJob::DoInvokeCallbackJobFinish(Job* ChildBase) {
 }
 
 void HttpHandlerJob::Response200OK(const std::string& Body) {
+  LOG_TRACE("%s", Body.c_str());
   MemoryBuffer* MB = MemoryBuffer::Create();
   MEMBUF_APP(MB, "HTTP/1.1 200 OK\r\nContent-Length: ");
   char PrintBuffer[32];

@@ -26,7 +26,7 @@ struct BotConfig final {
     std::string WebHookUploadMedia;  // internal
     std::string Token;
     std::string EncodingAesKey;
-    std::string CallbackVerifyPath;
+    std::string CallbackPath;
   } Bot;
   struct {
     std::string BindIpv4;

@@ -4,7 +4,7 @@
         "WebHookPrefix":"https://qyapi.weixin.qq.com/cgi-bin/webhook",
         "Token": "",
         "EncodingAesKey": "",
-        "CallbackVerifyPath": "/verify"
+        "CallbackPath": "/verify"
     },
     "Http": {
         "BindIpv4": "0.0.0.0",

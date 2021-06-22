@@ -1,6 +1,7 @@
 #include "wcbot/Core/Engine.h"
 #include "wcbot/Utility/CronTrigger.h"
 
+#include "Job/EchoCallbackJob.h"
 #include "Job/QBJob.h"
 
 static void RegisterQBJob();
@@ -11,6 +12,8 @@ int main(int argc, char *argv[]) {
   Engine.Initialize();
 
   RegisterQBJob();
+  Engine.RegisterCallbackHandler(
+      []() -> wcbot::MessageCallbackJob * { return new EchoCallbackJob(); });
 
   int Ret = wcbot::Engine::Get().Run();
   LOG_ALL("%d\n", Ret);

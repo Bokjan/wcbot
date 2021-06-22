@@ -9,15 +9,15 @@ namespace wcbot {
 class Logger {
  public:
   enum LogLevel : int {
-    kUnknown = -1,
-    kOff = 0,
+    kUnknown = 0,
     kTrace,
     kDebug,
     kInfo,
     kWarn,
     kError,
     kFatal,
-    kAll
+    kAll,
+    kOff
   };
 
   Logger() : CurrentLevel(kWarn) {}
@@ -27,7 +27,7 @@ class Logger {
   void Log(LogLevel Level, const char *Format, ...);
   bool SetLevel(const std::string &Target);
   bool SetLevel(LogLevel Target) {
-    if (Target < kOff || Target > kAll) {
+    if (Target < kUnknown || Target > kOff) {
       return false;
     }
     CurrentLevel = Target;

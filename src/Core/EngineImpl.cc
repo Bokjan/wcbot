@@ -82,7 +82,7 @@ static bool InternalParseConfig(BotConfig &Config, const rapidjson::Document &Js
     BREAK_ON_FALSE(RapidJsonGetString(Bot, "WebHookPrefix", Config.Bot.WebHookPrefix));
     BREAK_ON_FALSE(RapidJsonGetString(Bot, "Token", Config.Bot.Token));
     BREAK_ON_FALSE(RapidJsonGetString(Bot, "EncodingAesKey", Config.Bot.EncodingAesKey));
-    BREAK_ON_FALSE(RapidJsonGetString(Bot, "CallbackVerifyPath", Config.Bot.CallbackVerifyPath));
+    BREAK_ON_FALSE(RapidJsonGetString(Bot, "CallbackPath", Config.Bot.CallbackPath));
     Config.Bot.WebHookSend.assign(Config.Bot.WebHookPrefix)
         .append("/send?key=")
         .append(Config.Bot.WebHookKey);
