@@ -14,7 +14,6 @@ SilentPushJob::SilentPushJob(const wecom::ServerMessage &Message)
     : Job(), State(StateEnum::kSendReq), Message(&Message) {}
 
 void SilentPushJob::Do(Job *Trigger) {
-  Job::Do(Trigger);
   switch (State) {
     case StateEnum::kSendReq:
       this->DoSendReq();
@@ -66,6 +65,7 @@ void SilentPushJob::DoSendRsp(Job *RspBase) {
   } while (false);
   // a silent job
   // don't callback parent
+  SafeParent()->RemoveChild(this);
   DeleteThis();
 }
 

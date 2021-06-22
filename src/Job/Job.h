@@ -12,18 +12,27 @@ class Job {
   Job(const Job &) = delete;
   Job(const Job &&) = delete;
   virtual ~Job();
-  virtual void Do(Job *Trigger = nullptr);
+  // The `Job` state machine is driven by `Do`
+  virtual void Do(Job *Trigger = nullptr) = 0;
+  // Call `DeleteThis` before your state machine exit
   void DeleteThis() { delete this; }
   void SetParent(Job *P) { Parent = P; }
   void ResetParent() { Parent = nullptr; }
   void RemoveChild(Job *J);
+  // Always use `SafeParent()->Do(this)`
+  // if you want to notify parent something
   Job *SafeParent();
-
+  // Always start a child job by `InvokeChild`
+  // Don't directly call `Child->Do()`
   void InvokeChild(Job *Child, Job *DoArgument = nullptr);
+  void NotifyParent();
 
  public:
-  enum ErrEnum { kErrTimeout = -9999 };
+  // ErrCode = 0, success
+  // ErrCode < 0, framework error
+  // ErrCode > 0, user-defined error
   int ErrCode;
+  enum ErrEnum { kErrTimeout = -9999 };
 
  private:
   Job *Parent;

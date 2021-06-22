@@ -65,7 +65,6 @@ size_t HeaderFunction(char *Ptr, size_t Size, size_t NItems, void *UserData) {
 HttpClientJob::HttpClientJob() : IOJob(), TimeoutMS(1000), State(StateEnum::kCurlStart) {}
 
 void HttpClientJob::Do(Job *Trigger) {
-  Job::Do(Trigger);
   switch (State) {
     case StateEnum::kCurlStart:
       this->DoCurlStart();
@@ -87,7 +86,7 @@ void HttpClientJob::OnTimeout() {
   curl_multi_socket_action(worker_impl::g_ThisThread->CurlMultiHandle, CURL_SOCKET_TIMEOUT, 0,
                            &Running);
   ErrCode = kErrTimeout;
-  SafeParent()->Do(this);
+  NotifyParent();
   DeleteThis();
 }
 
@@ -104,6 +103,7 @@ void HttpClientJob::DoCurlStart() {
   curl_easy_setopt(CurlEasy, CURLOPT_HEADERFUNCTION, http_client_impl::HeaderFunction);
   curl_easy_setopt(CurlEasy, CURLOPT_WRITEDATA, this);
   curl_easy_setopt(CurlEasy, CURLOPT_WRITEFUNCTION, http_client_impl::WriteFunction);
+  curl_easy_setopt(CurlEasy, CURLOPT_NOSIGNAL, 1L);
   // url
   curl_easy_setopt(CurlEasy, CURLOPT_URL, Request.GetUrl().c_str());
   // body
@@ -145,12 +145,12 @@ void HttpClientJob::DoCurlStart() {
 }
 
 void HttpClientJob::DoCurlFinish() {
-  SafeParent()->Do(this);
+  NotifyParent();
   DeleteThis();
 }
 
 void HttpClientJob::DoError() {
-  SafeParent()->Do(this);
+  NotifyParent();
   DeleteThis();
 }
 

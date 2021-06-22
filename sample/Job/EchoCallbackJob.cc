@@ -4,6 +4,7 @@
 #include "wcbot/WeCom/TextServerMessage.h"
 
 void EchoCallbackJob::Do(Job *Trigger) {
+  Job::Do(Trigger);
   do {
     auto *TCM = dynamic_cast<wcbot::wecom::TextClientMessage *>(Request);
     if (TCM == nullptr) {

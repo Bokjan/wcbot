@@ -5,6 +5,7 @@
 #include "wcbot/WeCom/TextServerMessage.h"
 
 void QBJob::Do(Job* Trigger) {
+  Job::Do(Trigger);
   LOG_INFO("%s", "QBJob, 提醒发Q币");
   wcbot::wecom::TextServerMessage TSM;
   TSM.Content = "各位薅薅公子，明天发 Q 币！你的 30 Q 币用完了吗？";

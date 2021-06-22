@@ -10,6 +10,11 @@ class ServerMessage;
 
 class HttpClientJob;
 
+// `SilentPushJob` will send out the message passed to constructor
+// No matter success/fail, this job will never notify parent
+// `Message` is not given as a pointer, that means the job won't `free` it
+// You can construct `Message` on stack safely
+
 class SilentPushJob final : public Job {
  public:
   explicit SilentPushJob(const wecom::ServerMessage &Message);

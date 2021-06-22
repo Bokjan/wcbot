@@ -12,14 +12,8 @@ ClientMessage::ClientMessage(tinyxml2::XMLElement *Root) { ParseCommon(Root); }
 void ClientMessage::ParseCommon(tinyxml2::XMLElement *Root) {
   HasExtractError = true;
   do {
-    // WebhookUrl
-    auto Find = Root->FirstChildElement("WebhookUrl");
-    if (Find == nullptr) {
-      break;
-    }
-    WebHookUrl = Find->GetText();
     // ChatId
-    Find = Root->FirstChildElement("ChatId");
+    auto Find = Root->FirstChildElement("ChatId");
     if (Find == nullptr) {
       break;
     }

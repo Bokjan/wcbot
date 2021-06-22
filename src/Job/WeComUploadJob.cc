@@ -13,7 +13,6 @@ namespace wcbot {
 WeComUploadJob::WeComUploadJob(Job *Receiver) : Job(), Code(0), State(StateEnum::kUploadMediaReq) {}
 
 void WeComUploadJob::Do(Job *Trigger) {
-  Job::Do(Trigger);
   switch (State) {
     case StateEnum::kUploadMediaReq:
       this->DoUploadMediaReq();
@@ -30,7 +29,7 @@ void WeComUploadJob::Do(Job *Trigger) {
 }
 
 void WeComUploadJob::DoError() {
-  SafeParent()->Do(this);
+  NotifyParent();
   DeleteThis();
 }
 
@@ -101,7 +100,7 @@ void WeComUploadJob::DoUploadMediaRsp(Job *RspBase) {
     }
     MediaId = Json["media_id"].GetString();
   } while (false);
-  SafeParent()->Do(this);
+  NotifyParent();
   DeleteThis();
 }
 

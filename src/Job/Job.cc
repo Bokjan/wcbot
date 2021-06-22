@@ -21,8 +21,6 @@ Job::~Job() {
   }
 }
 
-void Job::Do(Job *Trigger) { RemoveChild(Trigger); }
-
 void Job::RemoveChild(Job *J) {
   if (J == nullptr) {
     return;
@@ -47,6 +45,11 @@ void Job::InvokeChild(Job *J, Job *DoArgument) {
   Children.emplace_back(J);
   J->SetParent(this);
   J->Do(DoArgument);
+}
+
+void Job::NotifyParent() {
+  SafeParent()->RemoveChild(this);
+  SafeParent()->Do(this);
 }
 
 }  // namespace wcbot

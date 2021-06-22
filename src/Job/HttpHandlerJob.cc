@@ -21,7 +21,6 @@ namespace wcbot {
 HttpHandlerJob::HttpHandlerJob(TcpMemoryBuffer* RB) : TcpHandlerJob(RB), State(StateEnum::kStart) {}
 
 void HttpHandlerJob::Do(Job* Trigger) {
-  Job::Do(Trigger);
   switch (State) {
     case StateEnum::kStart:
       this->DoStart();

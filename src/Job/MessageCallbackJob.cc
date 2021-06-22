@@ -10,7 +10,7 @@ MessageCallbackJob::~MessageCallbackJob() {
     delete Request;
   }
   // notify parent handler
-  SafeParent()->Do(this);
+  NotifyParent();
   // free `Response`
   if (Response != nullptr) {
     delete Response;

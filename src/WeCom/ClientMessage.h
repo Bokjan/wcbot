@@ -20,7 +20,6 @@ class ClientMessage {
   ChatTypeEnum ChatType;
   std::string MsgId;
   std::string ChatId;
-  std::string WebHookUrl;
   std::string GetChatInfoUrl;
   struct {
     std::string UserId;

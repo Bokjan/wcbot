@@ -60,9 +60,7 @@ void MemoryBuffer::SwapMemory(MemoryBuffer& Other) {
 }
 
 void MemoryBuffer::SetNullTerminated() {
-  char Zero[0];
-  Zero[0] = '\0';
-  this->Append(Zero, 1);
+  this->Append("", 1);
   --this->Length;
 }
 

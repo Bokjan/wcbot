@@ -5,6 +5,10 @@
 
 namespace wcbot {
 
+// Do any HTTP/HTTPS request by this job
+// Set `TimeoutMS` and `Request` before invoke, 
+// and get your response in `Response`
+
 class HttpClientJob final : public IOJob {
  public:
   union CurlPrivate {
