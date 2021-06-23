@@ -89,6 +89,7 @@ class EngineImpl final {
   bool InitializeCryptor();
   bool InitializeWorkerThreads();
   bool InitializeSignalHandler();
+  void ActivateDaemon();
   void Finalize();
 };
 

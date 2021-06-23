@@ -19,7 +19,7 @@ int SyncFileLogger::Open() {
   if (FD > 0) {
     Close();
   }
-  FD = open(FileName.c_str(), O_WRONLY | O_APPEND | O_CREAT);
+  FD = open(FileName.c_str(), O_WRONLY | O_APPEND | O_CREAT, 0644);
   if (FD <= 0) {
     LOG_ERROR("SyncFileLogger::Open open=%d", FD);
     return FD;
@@ -45,8 +45,7 @@ void SyncFileLogger::Log(const char *Format, va_list Arguments) {
   std::lock_guard<std::mutex> Lock(Mutex);
   char Buffer[64 * 1024];  // 64 KiB
   int Length = vsnprintf(Buffer, sizeof(Buffer), Format, Arguments);
-  int Ret = write(FD, Buffer, Length);
-  printf("write=%d\n", Ret);
+  write(FD, Buffer, Length);
 }
 
 }  // namespace wcbot

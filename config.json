@@ -20,7 +20,7 @@
     "Log": {
         "LogLevel": "trace",
         "Type": "stderr",
-        "FilePath": "",
+        "FilePath": ""
     },
     "CustomConfig": "/path/to/config/file"
 }

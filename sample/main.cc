@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
       []() -> wcbot::MessageCallbackJob * { return new EchoCallbackJob(); });
 
   int Ret = wcbot::Engine::Get().Run();
-  LOG_ALL("%d\n", Ret);
+  LOG_ALL("%d", Ret);
 }
 
 void RegisterQBJob() {

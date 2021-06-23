@@ -6,6 +6,7 @@
 #include <curl/curl.h>
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
+#include <unistd.h>
 
 #include "../Codec/HttpCodec.h"
 #include "../ThirdParty/WXBizMsgCrypt/WXBizMsgCrypt.h"
@@ -128,7 +129,7 @@ static bool InternalParseConfig(BotConfig &Config, const rapidjson::Document &Js
         }
         BREAK_ON_FALSE(RapidJsonGetString(Log, "FilePath", Config.Log.FilePath));
         auto *SFL = new SyncFileLogger;
-        SFL->SetFile(Config.Log.FilePath);
+        BREAK_ON_FALSE(SFL->SetFile(Config.Log.FilePath) == 0);
         logger_internal::SetLogger(SFL);
       } while (false);
       if (RapidJsonGetString(Log, "LogLevel", Config.Log.LogLevel)) {
@@ -205,6 +206,10 @@ bool EngineImpl::ParseConfig(const std::string &Path) {
 }
 
 int EngineImpl::Run() {
+  // daemon
+  if (IsFork) {
+    this->ActivateDaemon();
+  }
   // start threads
   for (ThreadContext *Ptr : Threads) {
     uv_thread_create(&Ptr->UvThread, worker_impl::EntryPoint, Ptr);
@@ -319,6 +324,25 @@ bool EngineImpl::InitializeSignalHandler() {
   this->UvSignal_SIGTERM.data = this;
   uv_signal_start(&this->UvSignal_SIGTERM, main_impl::OnSignal_Exit, SIGTERM);
   return true;
+}
+
+void EngineImpl::ActivateDaemon() {
+  auto PID = fork();
+  if (PID == -1) {
+    LOG_ERROR("fork() failed");
+    exit(EXIT_FAILURE);
+    return;
+  }
+  // parent exits
+  if (PID != 0) {
+    exit(EXIT_SUCCESS);
+  }
+  // setsid()
+  auto Ret = setsid();
+  if (Ret == -1) {
+    LOG_ERROR("setsid() returns %d", Ret);
+    exit(EXIT_FAILURE);
+  }
 }
 
 namespace main_impl {

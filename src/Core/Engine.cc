@@ -26,7 +26,7 @@ bool Engine::ParseArguments(int argc, char *argv[]) {
       return false;
     }
   }
-  PImpl->IsFork = (argc >= 3) ? true : false;
+  PImpl->IsFork = (argc >= 3) ? false : true;
   return true;
 }
 
