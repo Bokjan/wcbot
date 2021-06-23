@@ -31,7 +31,7 @@ SET(COMP_FILES  ${COMP_FILES}
                 WeCom/MixedClientMessage.cc WeCom/ClientMessageImpl.cc)
 SET(COMP_FILES  ${COMP_FILES}
                 Utility/Common.cc Utility/Logger.cc Utility/HttpPackage.cc
-                Utility/MemoryBuffer.cc Utility/CronTrigger.cc)
+                Utility/MemoryBuffer.cc Utility/CronTrigger.cc Utility/SyncFileLogger.cc)
 SET(COMP_FILES  ${COMP_FILES}
                 ThirdParty/tinyxml2/tinyxml2.cpp
                 ThirdParty/WXBizMsgCrypt/WXBizMsgCrypt.cpp)

@@ -37,9 +37,13 @@ struct BotConfig final {
     uint64_t MaxSendBuffLength;
   } Network;
   struct {
-    std::string LogLevel;
     uint32_t WorkerThread;
   } Framework;
+  struct {
+    std::string LogLevel;
+    std::string Type;
+    std::string FilePath;
+  } Log;
   std::string CustomConfig;
   BotConfig() : ParseOk(false) {}
 };

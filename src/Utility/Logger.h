@@ -22,7 +22,7 @@ class Logger {
 
   Logger() : CurrentLevel(kWarn) {}
   virtual ~Logger();
-  virtual void Log(LogLevel Level, const char *Format, va_list Arguments) = 0;
+  virtual void Log(const char *Format, va_list Arguments) = 0;
   const char *GetTimeCString(LogLevel Level = kAll);
   void Log(LogLevel Level, const char *Format, ...);
   bool SetLevel(const std::string &Target);
@@ -40,6 +40,7 @@ class Logger {
 };
 
 namespace logger_internal {
+void SetLogger(Logger *Ptr);
 extern Logger *g_Logger;
 extern const char *g_LogLevelCString[];
 }  // namespace logger_internal
@@ -58,7 +59,7 @@ extern const char *g_LogLevelCString[];
 
 class StderrLogger final : public Logger {
  public:
-  void Log(LogLevel Level, const char *Format, va_list Arguments);
+  void Log(const char *Format, va_list Arguments);
 };
 
 namespace logger_internal {

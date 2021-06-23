@@ -1,7 +1,7 @@
 {
     "Bot": {
         "WebHookKey": "<UUID>",
-        "WebHookPrefix":"https://qyapi.weixin.qq.com/cgi-bin/webhook",
+        "WebHookPrefix": "https://qyapi.weixin.qq.com/cgi-bin/webhook",
         "Token": "",
         "EncodingAesKey": "",
         "CallbackPath": "/verify"
@@ -15,8 +15,12 @@
         "MaxSendBuffLength": 1048576
     },
     "Framework": {
-        "LogLevel": "trace",
         "WorkerThread": 1
+    },
+    "Log": {
+        "LogLevel": "trace",
+        "Type": "stderr",
+        "FilePath": "",
     },
     "CustomConfig": "/path/to/config/file"
 }

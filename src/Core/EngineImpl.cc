@@ -10,7 +10,7 @@
 #include "../Codec/HttpCodec.h"
 #include "../ThirdParty/WXBizMsgCrypt/WXBizMsgCrypt.h"
 #include "../Utility/Common.h"
-#include "../Utility/Logger.h"
+#include "../Utility/SyncFileLogger.h"
 #include "../Utility/TcpMemoryBuffer.h"
 #include "WorkerThread.h"
 
@@ -41,7 +41,7 @@ static void OnCronTimerTick(uv_timer_t *Timer);
 
 static inline bool RapidJsonGetString(const rapidjson::Value &Value, const char *Member,
                                       std::string &Destination) {
-  if (!Value[Member].IsString()) {
+  if (!Value.HasMember(Member) || !Value[Member].IsString()) {
     return false;
   }
   Destination = std::string(Value[Member].GetString(), Value[Member].GetStringLength());
@@ -50,7 +50,7 @@ static inline bool RapidJsonGetString(const rapidjson::Value &Value, const char 
 
 static inline bool RapidJsonGetUInt64(const rapidjson::Value &Value, const char *Member,
                                       uint64_t &Destination) {
-  if (!Value[Member].IsUint64()) {
+  if (!Value.HasMember(Member) || !Value[Member].IsUint64()) {
     return false;
   }
   Destination = Value[Member].GetUint64();
@@ -59,7 +59,7 @@ static inline bool RapidJsonGetUInt64(const rapidjson::Value &Value, const char 
 
 static inline bool RapidJsonGetUInt32(const rapidjson::Value &Value, const char *Member,
                                       uint32_t &Destination) {
-  if (!Value[Member].IsUint()) {
+  if (!Value.HasMember(Member) || !Value[Member].IsUint()) {
     return false;
   }
   Destination = Value[Member].GetUint();
@@ -110,10 +110,30 @@ static bool InternalParseConfig(BotConfig &Config, const rapidjson::Document &Js
         RapidJsonGetUInt64(Network, "MaxSendBuffLength", Config.Network.MaxSendBuffLength));
 
     // Framework
+    BREAK_ON_FALSE(Json.HasMember("Framework") && Json["Framework"].IsObject());
     const rapidjson::Value &Framework = Json["Framework"];
     BREAK_ON_FALSE(RapidJsonGetUInt32(Framework, "WorkerThread", Config.Framework.WorkerThread));
-    if (RapidJsonGetString(Framework, "LogLevel", Config.Framework.LogLevel)) {
-      BREAK_ON_FALSE(logger_internal::g_Logger->SetLevel(Config.Framework.LogLevel));
+
+    // Log
+    if (Json.HasMember("Framework") && Json["Framework"].IsObject()) {
+      const rapidjson::Value &Log = Json["Log"];
+      do {
+        bool Check;
+        Check = RapidJsonGetString(Log, "Type", Config.Log.Type);
+        if (!Check) {
+          break;
+        }
+        if (Config.Log.Type != "sync_file") {
+          break;
+        }
+        BREAK_ON_FALSE(RapidJsonGetString(Log, "FilePath", Config.Log.FilePath));
+        auto *SFL = new SyncFileLogger;
+        SFL->SetFile(Config.Log.FilePath);
+        logger_internal::SetLogger(SFL);
+      } while (false);
+      if (RapidJsonGetString(Log, "LogLevel", Config.Log.LogLevel)) {
+        BREAK_ON_FALSE(logger_internal::g_Logger->SetLevel(Config.Log.LogLevel));
+      }
     }
 
     // CustomConfig
@@ -270,6 +290,10 @@ void EngineImpl::Finalize() {
   // cryptor
   if (Cryptor != nullptr) {
     delete Cryptor;
+  }
+  // logger
+  if (dynamic_cast<SyncFileLogger*>(logger_internal::g_Logger) != nullptr) {
+    delete dynamic_cast<SyncFileLogger*>(logger_internal::g_Logger);
   }
 }
 

@@ -14,6 +14,9 @@ StderrLogger DefaultStderrLogger;
 Logger *g_Logger = &logger_internal::DefaultStderrLogger;
 const char *g_LogLevelCString[] = {"<UNKNOWN>", "<TRACE>", "<DEBUG>", "<INFO> ", "<WARN> ",
                                    "<ERROR>",   "<FATAL>", "<ALL>  ", "<OFF>  "};
+void SetLogger(Logger *Ptr) {
+  g_Logger = Ptr;
+}
 }  // namespace logger_internal
 
 Logger::~Logger() {}
@@ -24,7 +27,7 @@ void Logger::Log(LogLevel Level, const char *Format, ...) {
   }
   va_list Arguments;
   va_start(Arguments, Format);
-  this->Log(Level, Format, Arguments);
+  this->Log(Format, Arguments);
   va_end(Arguments);
 }
 
@@ -55,7 +58,7 @@ bool Logger::SetLevel(const std::string &Target) {
   return true;
 }
 
-void StderrLogger::Log(LogLevel Level, const char *Format, va_list Arguments) {
+void StderrLogger::Log(const char *Format, va_list Arguments) {
   vfprintf(stderr, Format, Arguments);
 }
 
