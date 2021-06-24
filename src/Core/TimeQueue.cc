@@ -1,4 +1,4 @@
-#include "DelayQueue.h"
+#include "TimeQueue.h"
 
 #include <list>
 #include <map>
@@ -78,6 +78,55 @@ IOJob *DelayQueue::Remove(uint32_t Id) {
   IOJob *Ret = MapIt->second->JobPtr;
   PImpl->List.erase(MapIt->second);
   PImpl->Map.erase(MapIt);
+  return Ret;
+}
+
+struct JobSleepInfo {
+  using SteadyTimePoint = std::chrono::time_point<std::chrono::steady_clock>;
+  Job *JobPtr;
+  SteadyTimePoint WakeUpAt;
+  JobSleepInfo(Job *J, SteadyTimePoint T) : JobPtr(J), WakeUpAt(T) {}
+};
+
+class SleepQueueImpl {
+  friend class SleepQueue;
+  std::list<JobSleepInfo> List;
+
+  SleepQueueImpl() {}
+
+  std::list<JobSleepInfo>::iterator FindPosition(JobSleepInfo::SteadyTimePoint Position) {
+    if (List.empty()) {
+      return List.end();
+    }
+    for (auto RevIt = List.rbegin(); RevIt != List.rend(); ++RevIt) {
+      if (RevIt->WakeUpAt < Position) {
+        return RevIt.base();
+      }
+    }
+    return List.begin();
+  }
+};
+
+SleepQueue::SleepQueue() : PImpl(new SleepQueueImpl()) {}
+
+SleepQueue::~SleepQueue() { delete PImpl; }
+
+void SleepQueue::Join(Job *J, int Millisecond) {
+  std::chrono::milliseconds Period(Millisecond);
+  auto Point = std::chrono::steady_clock::now() + Period;
+  PImpl->List.insert(PImpl->FindPosition(Point), JobSleepInfo(J, Point));
+}
+
+Job *SleepQueue::Dequeue(std::chrono::time_point<std::chrono::steady_clock> Now) {
+  if (PImpl->List.empty()) {
+    return nullptr;
+  }
+  auto &Front = PImpl->List.front();
+  if (Front.WakeUpAt > Now) {
+    return nullptr;
+  }
+  auto Ret = Front.JobPtr;
+  PImpl->List.erase(PImpl->List.begin());
   return Ret;
 }
 

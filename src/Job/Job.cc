@@ -41,6 +41,8 @@ void IOJob::JoinDelayQueue(int TimeoutMS) {
   worker_impl::g_ThisThread->JoinDelayQueue(this, TimeoutMS);
 }
 
+void Job::Sleep(int Millisecond) { worker_impl::g_ThisThread->JoinSleepQueue(this, Millisecond); }
+
 void Job::InvokeChild(Job *J, Job *DoArgument) {
   Children.emplace_back(J);
   J->SetParent(this);

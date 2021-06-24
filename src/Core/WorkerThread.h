@@ -6,7 +6,7 @@
 #include <uv.h>
 
 #include "ITC.h"
-#include "../Job/DelayQueue.h"
+#include "../Core/TimeQueue.h"
 
 namespace wcbot {
 
@@ -27,6 +27,7 @@ class ThreadContext final {
   uv_async_t MainToWorkerAsync;
   uv_async_t WorkerToMainAsync;
   DelayQueue DQueue;
+  SleepQueue SQueue;
   // cURL related
   void *CurlMultiHandle;
   uv_timer_t UvCurlTimer;
@@ -44,6 +45,8 @@ class ThreadContext final {
   void Tick();
   void DealDealyQueue();
   void JoinDelayQueue(IOJob *J, int Millis) { DQueue.Join(J, Millis); }
+  void DealSleepQueue();
+  void JoinSleepQueue(Job *J, int Millis) { SQueue.Join(J, Millis); }
   void InitializeCurlMulti();
 
  private:

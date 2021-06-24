@@ -4,8 +4,10 @@
 
 namespace wcbot {
 
+class Job;
 class IOJob;
 class DelayQueueImpl;
+class SleepQueueImpl;
 
 class DelayQueue {
  public:
@@ -17,6 +19,17 @@ class DelayQueue {
 
  protected:
   DelayQueueImpl* PImpl;
+};
+
+class SleepQueue final {
+ public:
+  SleepQueue();
+  ~SleepQueue();
+  void Join(Job* J, int Millisecond);
+  Job* Dequeue(std::chrono::time_point<std::chrono::steady_clock> Now);
+
+ private:
+  SleepQueueImpl* PImpl;
 };
 
 }  // namespace wcbot

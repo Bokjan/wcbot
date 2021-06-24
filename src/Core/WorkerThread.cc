@@ -72,9 +72,19 @@ void ThreadContext::DealDealyQueue() {
   }
 }
 
+void ThreadContext::DealSleepQueue() {
+  const auto Now = std::chrono::steady_clock::now();
+  Job *JobPtr;
+  while ((JobPtr = SQueue.Dequeue(Now)) != nullptr) {
+    JobPtr->Do(nullptr);
+  }
+}
+
 void ThreadContext::Tick() {
   // delay queue
   this->DealDealyQueue();
+  // sleep queue
+  this->DealSleepQueue();
 }
 
 namespace worker_impl {

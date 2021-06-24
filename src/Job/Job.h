@@ -14,6 +14,8 @@ class Job {
   virtual ~Job();
   // The `Job` state machine is driven by `Do`
   virtual void Do(Job *Trigger = nullptr) = 0;
+  // make this job sleep for a while
+  void Sleep(int Millisecond);
   // Call `DeleteThis` before your state machine exit
   void DeleteThis() { delete this; }
   void SetParent(Job *P) { Parent = P; }

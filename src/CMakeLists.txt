@@ -13,11 +13,12 @@ ENDIF()
 SET(COMP_FILES)
 SET(COMP_FILES  ${COMP_FILES}
                 Core/EngineImpl.cc Core/Engine.cc Core/WorkerThread.cc
-                Core/ITC.cc Core/TimeWheel.cc)
+                Core/ITC.cc Core/TimeWheel.cc Core/TimeQueue.cc)
 SET(COMP_FILES  ${COMP_FILES}
-                Job/Job.cc Job/TcpHandlerJob.cc Job/DelayQueue.cc
-                Job/HttpClientJob.cc Job/HttpHandlerJob.cc Job/SilentPushJob.cc
-                Job/WeComUploadJob.cc Job/MessageCallbackJob.cc)
+                Job/Job.cc Job/TcpHandlerJob.cc 
+                Job/HttpClientJob.cc Job/HttpHandlerJob.cc 
+                Job/SilentPushJob.cc Job/WeComUploadJob.cc
+                Job/MessageCallbackJob.cc)
 SET(COMP_FILES  ${COMP_FILES}
                 Codec/HttpCodec.cc)
 SET(COMP_FILES  ${COMP_FILES}
