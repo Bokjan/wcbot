@@ -8,6 +8,8 @@ ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 IF (APPLE)
     INCLUDE_DIRECTORIES(/usr/local/include)
     LINK_DIRECTORIES(/usr/local/lib)
+    INCLUDE_DIRECTORIES(/usr/local/opt/openssl/include)
+    LINK_DIRECTORIES(/usr/local/opt/openssl/lib)
 ENDIF()
 
 SET(COMP_FILES)

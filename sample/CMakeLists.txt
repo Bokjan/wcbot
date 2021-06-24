@@ -10,6 +10,8 @@ INCLUDE_DIRECTORIES(.)
 IF (APPLE)
     INCLUDE_DIRECTORIES(/usr/local/include)
     LINK_DIRECTORIES(/usr/local/lib)
+    INCLUDE_DIRECTORIES(/usr/local/opt/openssl/include)
+    LINK_DIRECTORIES(/usr/local/opt/openssl/lib)
 ENDIF()
 
 SET(COMP_FILES  main.cc Job/QBJob.cc Job/EchoCallbackJob.cc)

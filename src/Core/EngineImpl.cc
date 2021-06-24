@@ -68,7 +68,7 @@ static inline bool RapidJsonGetUInt32(const rapidjson::Value &Value, const char 
 }
 
 #define BREAK_ON_FALSE(x) \
-  if (!x) {               \
+  if (!(x)) {             \
     LOG_ERROR("%s", #x);  \
     break;                \
   }
@@ -509,7 +509,7 @@ static void OnCronTimerTick(uv_timer_t *Timer) {
   auto Next = mktime(&TM);
   uv_timer_stop(Timer);
   constexpr auto UsecInASec = 1000000;
-  auto DeltaMS = (UsecInASec - TimeVal.tv_usec) / 1000;
+  int64_t DeltaMS = (UsecInASec - TimeVal.tv_usec) / 1000;
   DeltaMS += (Next - Now - 1) * 1000;
   uv_timer_start(Timer, OnCronTimerTick, DeltaMS, 0);
   LOG_TRACE("now=%ld, next=%ld, deltams=%ld", Now, Next, DeltaMS);

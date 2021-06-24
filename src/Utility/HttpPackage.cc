@@ -213,7 +213,7 @@ bool HttpRequest::Parse(const char *Data, size_t Length) {
     if (MapIt == Headers.end()) {
       break;
     }
-    long HeaderContentLength;
+    int64_t HeaderContentLength;
     if (!utility::CStrToInt64(MapIt->second.c_str(), HeaderContentLength)) {
       break;
     }

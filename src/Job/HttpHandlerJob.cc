@@ -227,7 +227,8 @@ void HttpHandlerJob::Response200OK(const std::string& Body) {
   MemoryBuffer* MB = MemoryBuffer::Create();
   MEMBUF_APP(MB, "HTTP/1.1 200 OK\r\nContent-Length: ");
   char PrintBuffer[32];
-  int PrintLength = snprintf(PrintBuffer, sizeof(PrintBuffer), "%" PRIu64, Body.length());
+  int PrintLength =
+      snprintf(PrintBuffer, sizeof(PrintBuffer), "%" PRIu64, static_cast<uint64_t>(Body.length()));
   MB->Append(PrintBuffer, PrintLength);
   MEMBUF_APP(MB, "\r\n\r\n");
   MB->Append(Body);

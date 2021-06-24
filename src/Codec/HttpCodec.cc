@@ -37,7 +37,7 @@ static ssize_t HttpProtocolCheck(const MemoryBuffer *Buffer) {
   if (Search == nullptr) {
     return 0;
   }
-  size_t ContentLength;
+  uint64_t ContentLength;
   if (!utility::CStrToUInt64(ContentLengthStr, ContentLength)) {
     return 0;
   }

@@ -31,7 +31,7 @@ void SilentPushJob::DoSendReq() {
   auto J = new HttpClientJob();
   J->Request.SetUrl(Engine::Get().GetImpl().Config.Bot.WebHookSend);
   J->Request.Headers.insert(std::make_pair("Content-Type", "application/json"));
-  J->Request.Body = std::move(Message->GetJson());
+  J->Request.Body = Message->GetJson();
   J->Request.Method = HttpRequest::MethodEnum::kPost;
   J->TimeoutMS = kTimeoutMS;
   InvokeChild(J);
