@@ -297,8 +297,8 @@ void EngineImpl::Finalize() {
     delete Cryptor;
   }
   // logger
-  if (dynamic_cast<SyncFileLogger*>(logger_internal::g_Logger) != nullptr) {
-    delete dynamic_cast<SyncFileLogger*>(logger_internal::g_Logger);
+  if (dynamic_cast<SyncFileLogger *>(logger_internal::g_Logger) != nullptr) {
+    delete dynamic_cast<SyncFileLogger *>(logger_internal::g_Logger);
   }
 }
 
@@ -500,7 +500,19 @@ static void TimeWheelTickImpl(FN_CreateJob Function, void *UserData) {
 }
 
 static void OnCronTimerTick(uv_timer_t *Timer) {
-  LOG_TRACE("");
+  struct timeval TimeVal;
+  gettimeofday(&TimeVal, nullptr);
+  struct tm TM = *(localtime(&TimeVal.tv_sec));
+  auto Now = mktime(&TM);
+  TM.tm_min += 1;
+  TM.tm_sec = 0;
+  auto Next = mktime(&TM);
+  uv_timer_stop(Timer);
+  constexpr auto UsecInASec = 1000000;
+  auto DeltaMS = (UsecInASec - TimeVal.tv_usec) / 1000;
+  DeltaMS += (Next - Now - 1) * 1000;
+  uv_timer_start(Timer, OnCronTimerTick, DeltaMS, 0);
+  LOG_TRACE("now=%ld, next=%ld, deltams=%ld", Now, Next, DeltaMS);
   auto EImpl = reinterpret_cast<EngineImpl *>(Timer->data);
   EImpl->CronTimeWheel.Tick(TimeWheelTickImpl, EImpl);
 }
