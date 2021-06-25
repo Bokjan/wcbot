@@ -1,6 +1,7 @@
 #include "Job.h"
 
 #include "../Core/WorkerThread.h"
+#include "../Utility/Logger.h"
 
 namespace wcbot {
 
@@ -8,7 +9,9 @@ namespace job_impl {
 class GuardJob final : public Job {
  public:
   GuardJob() : Job() {}
-  void Do(Job *Trigger) override {}
+  void Do(Job *Trigger) override {
+    // LOG_TRACE("%s", "job_impl::GuardJob::Do()");
+  }
 };
 static GuardJob GuardJobObject;
 }  // namespace job_impl
@@ -50,8 +53,9 @@ void Job::InvokeChild(Job *J, Job *DoArgument) {
 }
 
 void Job::NotifyParent() {
-  SafeParent()->RemoveChild(this);
-  SafeParent()->Do(this);
+  Job *Parent = SafeParent();
+  Parent->RemoveChild(this);
+  Parent->Do(this);
 }
 
 }  // namespace wcbot

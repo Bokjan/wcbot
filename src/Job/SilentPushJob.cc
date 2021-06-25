@@ -65,7 +65,6 @@ void SilentPushJob::DoSendRsp(Job *RspBase) {
   } while (false);
   // a silent job
   // don't callback parent
-  SafeParent()->RemoveChild(this);
   DeleteThis();
 }
 

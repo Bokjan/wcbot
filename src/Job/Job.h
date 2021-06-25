@@ -18,15 +18,10 @@ class Job {
   void Sleep(int Millisecond);
   // Call `DeleteThis` before your state machine exit
   void DeleteThis() { delete this; }
-  void SetParent(Job *P) { Parent = P; }
-  void ResetParent() { Parent = nullptr; }
-  void RemoveChild(Job *J);
-  // Always use `SafeParent()->Do(this)`
-  // if you want to notify parent something
-  Job *SafeParent();
   // Always start a child job by `InvokeChild`
   // Don't directly call `Child->Do()`
   void InvokeChild(Job *Child, Job *DoArgument = nullptr);
+  // Terminate current job and return to parent
   void NotifyParent();
 
  public:
@@ -39,6 +34,10 @@ class Job {
  private:
   Job *Parent;
   std::vector<Job *> Children;
+  void SetParent(Job *P) { Parent = P; }
+  void ResetParent() { Parent = nullptr; }
+  void RemoveChild(Job *J);
+  Job *SafeParent();
 };
 
 class IOJob : public Job {

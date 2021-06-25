@@ -21,6 +21,7 @@ namespace wcbot {
 HttpHandlerJob::HttpHandlerJob(TcpMemoryBuffer* RB) : TcpHandlerJob(RB), State(StateEnum::kStart) {}
 
 void HttpHandlerJob::Do(Job* Trigger) {
+  // LOG_TRACE("HttpHandlerJob::Do trigger=%p, state=%d", Trigger, State);
   switch (State) {
     case StateEnum::kStart:
       this->DoStart();
@@ -192,6 +193,7 @@ static bool GetResponseBodyByCallbackMessage(MessageCallbackJob* J, std::string&
 }
 
 void HttpHandlerJob::DoInvokeCallbackJobFinish(Job* ChildBase) {
+  LOG_TRACE("");
   auto* Child = dynamic_cast<MessageCallbackJob*>(ChildBase);
   do {
     // class type doesn't match?

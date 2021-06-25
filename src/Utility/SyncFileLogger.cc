@@ -45,7 +45,7 @@ void SyncFileLogger::Log(const char *Format, va_list Arguments) {
   std::lock_guard<std::mutex> Lock(Mutex);
   char Buffer[64 * 1024];  // 64 KiB
   int Length = vsnprintf(Buffer, sizeof(Buffer), Format, Arguments);
-  write(FD, Buffer, Length);
+  (void)write(FD, Buffer, Length);
 }
 
 }  // namespace wcbot
