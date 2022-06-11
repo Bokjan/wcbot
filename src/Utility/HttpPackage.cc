@@ -150,7 +150,7 @@ bool HttpRequest::Parse(const char *Data, size_t Length) {
   // headers
   do {
     Current = Search + 2;  // 1st header line
-    Search = utility::StrNStr(Current, Data - Current, "\r\n\r\n",
+    Search = utility::StrNStr(Current, Length - static_cast<size_t>(Current - Data), "\r\n\r\n",
                               sizeof("\r\n\r\n") - 1);  // end of header
     if (Search == nullptr) {
       return false;
@@ -159,8 +159,8 @@ bool HttpRequest::Parse(const char *Data, size_t Length) {
     auto HeaderEnds = Search + 2;
     char *LineEnds;
     while (Current < HeaderEnds &&
-           (LineEnds = utility::StrNStr(Current, HeaderEnds - Current, "\r\n",
-                                        sizeof("\r\n") - 1)) != nullptr) {
+           (LineEnds = utility::StrNStr(Current, Length - static_cast<size_t>(Current - Data),
+                                        "\r\n", sizeof("\r\n") - 1)) != nullptr) {
       do {
         char *ColonPos;
         for (ColonPos = Current; ColonPos < LineEnds; ++ColonPos) {
