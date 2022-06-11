@@ -16,7 +16,7 @@ class GuardJob final : public Job {
 static GuardJob GuardJobObject;
 }  // namespace job_impl
 
-Job::Job() : ErrCode(0) {}
+Job::Job() : ErrCode(0), Parent(nullptr) {}
 
 Job::~Job() {
   for (auto ChildJob : this->Children) {

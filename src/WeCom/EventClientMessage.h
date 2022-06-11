@@ -14,7 +14,6 @@ class EventClientMessage : public ClientMessage {
     kEnterChat        // 进入单聊
   };
   EventEnum Event;
-  std::string AppVersion;
 };
 
 }  // namespace wecom

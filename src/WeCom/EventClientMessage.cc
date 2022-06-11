@@ -29,11 +29,6 @@ EventClientMessage::EventClientMessage(tinyxml2::XMLElement *Root) : ClientMessa
     } else {
       break;
     }
-    Find = Root->FirstChildElement("AppVersion");
-    if (Find == nullptr) {
-      break;
-    }
-    AppVersion = Find->GetText();
     HasExtractError = false;
   } while (false);
 }
