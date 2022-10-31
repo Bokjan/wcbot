@@ -57,7 +57,11 @@ void TimeWheelImpl::UpdateCurrentInfo() {
   auto TM = localtime(&T);
   CurrentMinute = TM->tm_min;
   CurrentHour = TM->tm_hour;
-  CurrentDayOfWeek = TM->tm_wday + 1;
+  CurrentDayOfWeek = TM->tm_wday; 
+  // 0 for Sunday
+  if (TM->tm_wday == 0) {
+    CurrentDayOfWeek = 7;
+  }  
   CurrentDayOfMonth = TM->tm_mday;
   CurrentMonth = TM->tm_mon + 1;
 }
