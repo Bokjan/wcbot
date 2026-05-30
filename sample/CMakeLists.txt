@@ -14,6 +14,7 @@ set(SAMPLE_SOURCES
     main.cc
     Job/QBJob.cc
     Job/EchoCallbackJob.cc
+    Job/DemoCallbackJob.cc
 )
 
 add_executable(wcbotd ${SAMPLE_SOURCES})
