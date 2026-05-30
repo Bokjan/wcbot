@@ -27,6 +27,7 @@ set(WCBOT_TEST_SOURCES
     HttpPackage_test.cc
     HttpCodec_test.cc
     TimeQueue_test.cc
+    TimeWheel_test.cc
     Job_test.cc
 )
 
