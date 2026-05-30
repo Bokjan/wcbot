@@ -2,6 +2,7 @@
 
 #include <ctime>  // C++11 has no calendar support in <chrono>
 
+#include <cstdint>
 #include <list>
 
 #include "../Job/Job.h"
@@ -21,10 +22,17 @@ class TimeWheelImpl {
     CronTrigger Trigger;
     FN_CreateJob Function;
     bool operator<(const SlotElement &Other) const {
+      // The C++ standard only guarantees `==` / `!=` on function pointers;
+      // ordered comparisons are implementation-defined and trigger
+      // `-Wordered-compare-function-pointers` on clang. Cast to `uintptr_t`
+      // to obtain a well-defined, stable total order — the value is only
+      // used to deduplicate `std::list::sort + unique` and never reflects
+      // any semantic ordering of the callbacks.
       if (Function == Other.Function) {
         return Trigger < Other.Trigger;
       }
-      return Function < Other.Function;
+      return reinterpret_cast<std::uintptr_t>(Function) <
+             reinterpret_cast<std::uintptr_t>(Other.Function);
     }
     bool operator==(const SlotElement &Other) const {
       return Function == Other.Function && Trigger == Other.Trigger;
@@ -54,16 +62,19 @@ TimeWheel::~TimeWheel() { delete PImpl; }
 
 void TimeWheelImpl::UpdateCurrentInfo() {
   time_t T = time(nullptr);
-  auto TM = localtime(&T);
-  CurrentMinute = TM->tm_min;
-  CurrentHour = TM->tm_hour;
-  CurrentDayOfWeek = TM->tm_wday; 
+  // `localtime_r` is the thread-safe variant; avoid the static buffer races
+  // that `localtime()` would introduce.
+  struct tm TM;
+  localtime_r(&T, &TM);
+  CurrentMinute = TM.tm_min;
+  CurrentHour = TM.tm_hour;
+  CurrentDayOfWeek = TM.tm_wday;
   // 0 for Sunday
-  if (TM->tm_wday == 0) {
+  if (TM.tm_wday == 0) {
     CurrentDayOfWeek = 7;
-  }  
-  CurrentDayOfMonth = TM->tm_mday;
-  CurrentMonth = TM->tm_mon + 1;
+  }
+  CurrentDayOfMonth = TM.tm_mday;
+  CurrentMonth = TM.tm_mon + 1;
 }
 
 void TimeWheel::AddCron(const CronTrigger &Trigger, FN_CreateJob Function) {
@@ -138,7 +149,7 @@ void TimeWheelImpl::TickMinute(FN_TimeWheelTickFunction Function, void *UserData
         }
       }
     }
-    if (TargetDoM == -1 && TargetDoM == -1) {
+    if (TargetDoW == -1 && TargetDoM == -1) {
       LOG_WARN("%s", "Invalid CronTrigger, DoM/DoW not set");
       continue;
     }

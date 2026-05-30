@@ -42,7 +42,9 @@ class Job {
 
 class IOJob : public Job {
  public:
-  IOJob(Job *Parent = nullptr) : Job() {}
+  // Note: parent-child relationship is established via `Job::InvokeChild`,
+  // not via the constructor. Do NOT pass a parent here.
+  IOJob() : Job(), JobId(0) {}
   void JoinDelayQueue(int TimeoutMS);
   virtual void OnTimeout() = 0;
   uint32_t GetJobId() { return JobId; }

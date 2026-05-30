@@ -181,7 +181,9 @@ static bool GetResponseBodyByCallbackMessage(MessageCallbackJob* J, std::string&
   auto Xml = J->GetResponse()->GetXml();
   char Nonce[32];
   char Timestamp[32];
-  snprintf(Nonce, sizeof(Nonce), "%d", rand());
+  // Use thread-safe RNG: `rand()` is not thread-safe and would race across
+  // worker threads.
+  snprintf(Nonce, sizeof(Nonce), "%u", utility::ThreadLocalRand());
   snprintf(Timestamp, sizeof(Timestamp), "%ld", time(nullptr));
   int Ret = Engine::Get().GetImpl().Cryptor->EncryptMsg(Xml, Timestamp, Nonce, Encrypted);
   if (Ret != 0) {

@@ -54,13 +54,18 @@ IOJob *DelayQueue::Dequeue(std::chrono::time_point<std::chrono::steady_clock> No
     return nullptr;
   }
   for (;;) {
+    if (PImpl->List.empty()) {
+      return nullptr;
+    }
     if (PImpl->List.front().TimeoutAt > Now) {
       return nullptr;
     }
     JobTimeoutInfo Front = PImpl->List.front();
     PImpl->List.erase(PImpl->List.begin());
     auto MapIt = PImpl->Map.find(Front.Id);
-    if (MapIt == PImpl->Map.end()) {
+    // Erase the map entry only if it actually exists. The previous logic was
+    // inverted: it called `erase(end())` (UB) and never removed real entries.
+    if (MapIt != PImpl->Map.end()) {
       PImpl->Map.erase(MapIt);
     }
     if (Front.Id != Front.JobPtr->GetJobId()) {

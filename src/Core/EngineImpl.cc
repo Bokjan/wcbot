@@ -116,7 +116,7 @@ static bool InternalParseConfig(BotConfig &Config, const rapidjson::Document &Js
     BREAK_ON_FALSE(RapidJsonGetUInt32(Framework, "WorkerThread", Config.Framework.WorkerThread));
 
     // Log
-    if (Json.HasMember("Framework") && Json["Framework"].IsObject()) {
+    if (Json.HasMember("Log") && Json["Log"].IsObject()) {
       const rapidjson::Value &Log = Json["Log"];
       do {
         bool Check;
@@ -183,7 +183,9 @@ EngineImpl::EngineImpl()
       CbHandlerCreator(nullptr),
       Cryptor(nullptr) {
   main_impl::g_EImpl = this;
-  srand(time(nullptr));
+  // Note: PRNG seeding is done lazily per-thread in `utility::ThreadLocalRand`
+  // (see Utility/Common.h). We avoid `srand()` here because `rand()` is not
+  // thread-safe and would race across worker threads.
 }
 
 EngineImpl::~EngineImpl() { this->Finalize(); }
@@ -288,17 +290,19 @@ void EngineImpl::Finalize() {
     delete Ptr;
   }
   Threads.clear();
-  // dispatcher
-  if (Dispatcher != nullptr) {
-    delete Dispatcher;
-  }
+  // dispatcher (`delete nullptr` is well-defined; guard is unnecessary)
+  delete Dispatcher;
+  Dispatcher = nullptr;
   // cryptor
-  if (Cryptor != nullptr) {
-    delete Cryptor;
-  }
-  // logger
-  if (dynamic_cast<SyncFileLogger *>(logger_internal::g_Logger) != nullptr) {
-    delete dynamic_cast<SyncFileLogger *>(logger_internal::g_Logger);
+  delete Cryptor;
+  Cryptor = nullptr;
+  // logger: only the dynamically allocated SyncFileLogger is owned here;
+  // after delete, restore the default stderr logger so that any late log
+  // call does not dereference a freed pointer.
+  auto *SFL = dynamic_cast<SyncFileLogger *>(logger_internal::g_Logger);
+  if (SFL != nullptr) {
+    logger_internal::SetLogger(&logger_internal::DefaultStderrLogger);
+    delete SFL;
   }
 }
 
@@ -502,7 +506,10 @@ static void TimeWheelTickImpl(FN_CreateJob Function, void *UserData) {
 static void OnCronTimerTick(uv_timer_t *Timer) {
   struct timeval TimeVal;
   gettimeofday(&TimeVal, nullptr);
-  struct tm TM = *(localtime(&TimeVal.tv_sec));
+  // Use `localtime_r` (thread-safe) so we do not share a static buffer with
+  // any code running on worker threads.
+  struct tm TM;
+  localtime_r(&TimeVal.tv_sec, &TM);
   auto Now = mktime(&TM);
   TM.tm_min += 1;
   TM.tm_sec = 0;

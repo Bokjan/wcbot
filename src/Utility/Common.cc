@@ -4,8 +4,11 @@
 #include <cstdio>
 #include <cstring>
 
+#include <chrono>
 #include <fstream>
+#include <random>
 #include <sstream>
+#include <thread>
 
 #include <openssl/evp.h>
 #include <openssl/md5.h>
@@ -158,6 +161,18 @@ std::string UrlDecode(const std::string& Plain) {
     Buffer.push_back(Plain[i]);
   }
   return Buffer;
+}
+
+uint32_t ThreadLocalRand() {
+  // One mt19937 per thread, lazily seeded with a mix of high-resolution time
+  // and the thread id to ensure distinct sequences across worker threads.
+  thread_local std::mt19937 Engine([] {
+    auto Now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+    auto Tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
+    return static_cast<std::mt19937::result_type>(static_cast<uint64_t>(Now) ^
+                                                  static_cast<uint64_t>(Tid));
+  }());
+  return static_cast<uint32_t>(Engine());
 }
 
 }  // namespace utility

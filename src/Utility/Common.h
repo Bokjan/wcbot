@@ -20,5 +20,11 @@ std::string Base64Encode(const void *Data, const uint64_t Length);
 std::string Base64Decode(const void *Data, const uint64_t Length);
 std::string UrlDecode(const std::string &Plain);
 
+// Thread-safe pseudo-random integer generator.
+// Each thread owns its own `std::mt19937` instance, seeded once on first use,
+// avoiding the data race that plain `rand()`/`srand()` would introduce when
+// called from multiple worker threads.
+uint32_t ThreadLocalRand();
+
 }  // namespace utility
 }  // namespace wcbot

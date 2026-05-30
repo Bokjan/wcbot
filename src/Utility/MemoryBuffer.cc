@@ -11,6 +11,10 @@ namespace wcbot {
 
 MemoryBuffer::MemoryBuffer() : BasePtr(nullptr), Length(0), Capacity(0) {
   BasePtr = reinterpret_cast<char*>(malloc(MemoryBuffer::kInitialSize));
+  if (BasePtr == nullptr) {
+    LOG_FATAL("MemoryBuffer initial malloc failed, size=%zu", MemoryBuffer::kInitialSize);
+    abort();
+  }
   Capacity = MemoryBuffer::kInitialSize;
 }
 
@@ -23,17 +27,38 @@ MemoryBuffer::~MemoryBuffer() {
 }
 
 void MemoryBuffer::DoubleCapacity() {
-  BasePtr = reinterpret_cast<char*>(realloc(BasePtr, Capacity * 2));
-  Capacity *= 2;
+  size_t NewCapacity = Capacity * 2;
+  void* NewPtr = realloc(BasePtr, NewCapacity);
+  if (NewPtr == nullptr) {
+    // realloc failure: original buffer is still valid; bail out without
+    // overwriting `BasePtr` with nullptr (which would leak the original).
+    LOG_FATAL("MemoryBuffer realloc failed, oldCap=%zu newCap=%zu", Capacity, NewCapacity);
+    abort();
+  }
+  BasePtr = reinterpret_cast<char*>(NewPtr);
+  Capacity = NewCapacity;
 }
 
 void MemoryBuffer::Allocate(size_t SuggestedLength) {
-  // test if current length is sufficient
+  // test if remaining capacity is sufficient
   if (this->Capacity - this->Length >= SuggestedLength) {
     return;
   }
-  size_t NewSize = SuggestedLength + this->Length;
-  this->BasePtr = reinterpret_cast<char*>(realloc(this->BasePtr, NewSize));
+  // grow geometrically until the request is satisfied; this also keeps
+  // `Capacity` correctly in sync (the previous implementation forgot to update
+  // it, which silently broke `MaxRecvBuffLength` size-guarding).
+  size_t Required = this->Length + SuggestedLength;
+  size_t NewCapacity = this->Capacity == 0 ? kInitialSize : this->Capacity;
+  while (NewCapacity < Required) {
+    NewCapacity *= 2;
+  }
+  void* NewPtr = realloc(this->BasePtr, NewCapacity);
+  if (NewPtr == nullptr) {
+    LOG_FATAL("MemoryBuffer realloc failed, oldCap=%zu newCap=%zu", Capacity, NewCapacity);
+    abort();
+  }
+  this->BasePtr = reinterpret_cast<char*>(NewPtr);
+  this->Capacity = NewCapacity;
 }
 
 void MemoryBuffer::IncreaseLength(size_t Size) {
