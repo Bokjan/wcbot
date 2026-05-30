@@ -69,6 +69,10 @@ Useful options:
 
 - `-DCMAKE_BUILD_TYPE=Debug` — debug build (also defines `DEBUG`).
 - `-DWCBOT_BUILD_SAMPLE=OFF` — skip the sample executable.
+- `-DWCBOT_BUILD_TESTS=ON` — build the unit tests under `tests/` (uses
+  CMake `FetchContent` to pull in GoogleTest, requires network on first
+  configure). After building, run `ctest --test-dir build` to execute
+  them.
 
 ## Run
 

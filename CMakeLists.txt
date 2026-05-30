@@ -8,9 +8,15 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 option(WCBOT_BUILD_SAMPLE "Build the sample executable under sample/" ON)
+option(WCBOT_BUILD_TESTS  "Build unit tests under tests/ (requires network for FetchContent)" OFF)
 
 add_subdirectory(src)
 
 if(WCBOT_BUILD_SAMPLE AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/sample/CMakeLists.txt")
     add_subdirectory(sample)
+endif()
+
+if(WCBOT_BUILD_TESTS AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt")
+    enable_testing()
+    add_subdirectory(tests)
 endif()

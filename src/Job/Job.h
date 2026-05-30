@@ -155,13 +155,34 @@ namespace job_impl {
 class Driver {
  public:
   // Drive a job from an external event. The job may delete itself
-  // synchronously inside this call. Safe to chain (parent re-driven inside
-  // child's terminal step).
+  // synchronously inside this call. Re-entrant calls (e.g. `InvokeChild`
+  // inside an `OnStep`) are flattened into a per-thread pending queue so the
+  // call stack never deepens with the job graph.
   static void Run(Job *J, Job *Trigger);
 
   // Cancel a job (and all its descendants) without delivering any further
   // OnStep. The job will be deleted before this call returns.
   static void Cancel(Job *J);
+
+  // Internal: append a (Job, Trigger) pair to the per-thread pending queue.
+  // Called by `Job::InvokeChild` and by the kDone -> "notify parent" path.
+  // Business code MUST NOT call this directly.
+  static void Schedule(Job *J, Job *Trigger);
+
+ private:
+  // Drive a single job until it yields (kWaiting / kDone / cancelled).
+  // Any spawned children or "notify parent" continuations are appended to
+  // the per-thread pending queue rather than recursed into.
+  // `DeleteAfterStep`, if non-null, is freed by the framework right after
+  // the first OnStep call — used to deliver a finished child to its parent.
+  static void DriveOne(Job *J, Job *Trigger, Job *DeleteAfterStep);
+
+  // Remove every pending-queue entry that mentions `Victim` (as J, Trigger,
+  // or DeleteAfterStep). Called on out-of-band deletion so that the outer
+  // Run loop never reaches a stale pointer. Exposed to `Job` via friendship.
+  static void PurgePending(Job *Victim);
+
+  friend class ::wcbot::Job;
 };
 
 }  // namespace job_impl
