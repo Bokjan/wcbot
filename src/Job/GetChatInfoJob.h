@@ -26,14 +26,16 @@ struct ChatInfo {
   ChatInfo() : ErrCode(0), ChatType(ChatTypeEnum::kUnknown) {}
 };
 
-// `GetChatInfoJob` will fetch WeCom chat info from specified URL
+// GetChatInfoJob — fetch WeCom chat info from a given URL and (optionally)
+// invoke a user-supplied callback once the result is ready.
 
 class GetChatInfoJob final : public Job {
  public:
   explicit GetChatInfoJob(const std::string &Url);
   GetChatInfoJob(const GetChatInfoJob &) = delete;
   GetChatInfoJob(const GetChatInfoJob &&) = delete;
-  void Do(Job *Trigger = nullptr);
+
+  Step OnStep(Job *Trigger) override;
 
   enum ErrEnum { kErrHttp = 1, kErrJson };
 
@@ -43,13 +45,9 @@ class GetChatInfoJob final : public Job {
   FnCallback FinishCallback;
 
  private:
-  enum class StateEnum { kSendReq, kSendRsp, kFinish };
+  enum class StateEnum { kSendReq, kSendRsp };
   StateEnum State;
   const std::string &GetChatInfoUrl;
-
-  void DoSendReq();
-  void DoSendRsp(Job *Rsp);
-  void DoFinish();
 };
 
 }  // namespace wcbot

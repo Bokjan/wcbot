@@ -2,13 +2,15 @@
 
 #include "wcbot/Job/Job.h"
 
-using wcbot::Job;
-
-class QBJob final : public Job {
+class QBJob final : public wcbot::Job {
  public:
-  explicit QBJob(): Job() { }
+  QBJob() : wcbot::Job(), State(StateEnum::kInit) {}
   QBJob(const QBJob&) = delete;
   QBJob(const QBJob&&) = delete;
-  void Do(Job* Trigger = nullptr) override;
-  void DeleteThis() { delete this; }
+
+  Step OnStep(wcbot::Job* Trigger) override;
+
+ private:
+  enum class StateEnum { kInit, kWaitPush };
+  StateEnum State;
 };

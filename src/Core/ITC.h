@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include <utility>
+
 #include "../Job/Job.h"
 
 // Inter-Thread Communication
@@ -69,7 +71,7 @@ class TcpWorkerToMain final : public ItcEvent {
 
 class JobCreateAndRun final : public ItcEvent {
  public:
-  explicit JobCreateAndRun(FN_CreateJob Function) : Function(Function) {}
+  explicit JobCreateAndRun(FN_CreateJob Function) : Function(std::move(Function)) {}
   ~JobCreateAndRun() = default;
   void Process() override;
   void DeleteThis() { delete this; }

@@ -492,12 +492,12 @@ static void OnTcpWrite(uv_write_t *UvWriteBase, int Status) {
   delete UvWrite;
 }
 
-static void TimeWheelTickImpl(FN_CreateJob Function, void *UserData) {
+static void TimeWheelTickImpl(const FN_CreateJob &Function, void *UserData) {
   auto EImpl = reinterpret_cast<EngineImpl *>(UserData);
   // dispatch a `JobCreateAndRun` async ITC event
   ssize_t Index = EImpl->Dispatcher->NextThreadIndex();
   ThreadContext *Worker = EImpl->Threads[Index];
-  ItcEvent *Event = new itc::JobCreateAndRun(Function);
+  ItcEvent *Event = new itc::JobCreateAndRun(Function);  // copy: Function may fire again next minute
   Worker->MainToWorkerQueue.Enqueue(Event);
   // fire an async notification
   Worker->NotifyWorker();

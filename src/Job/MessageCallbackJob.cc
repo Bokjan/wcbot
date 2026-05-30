@@ -2,26 +2,16 @@
 
 namespace wcbot {
 
-MessageCallbackJob::MessageCallbackJob() : Request(nullptr), Response(nullptr) {}
+MessageCallbackJob::MessageCallbackJob() = default;
 
-MessageCallbackJob::~MessageCallbackJob() {
-  // free `Request`
-  if (Request != nullptr) {
-    delete Request;
-  }
-  // notify parent handler
-  NotifyParent();
-  // free `Response`
-  if (Response != nullptr) {
-    delete Response;
-  }
-}
+MessageCallbackJob::~MessageCallbackJob() = default;
 
 void MessageCallbackJob::SetRequest(wecom::ClientMessage *Target) {
-  if (Request != nullptr) {
-    delete Request;
-  }
-  Request = Target;
+  Request.reset(Target);
+}
+
+void MessageCallbackJob::SetResponse(wecom::XmlServerMessage *Target) {
+  Response.reset(Target);
 }
 
 }  // namespace wcbot

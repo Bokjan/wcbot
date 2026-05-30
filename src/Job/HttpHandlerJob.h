@@ -11,7 +11,8 @@ class HttpHandlerJob final : public TcpHandlerJob {
   explicit HttpHandlerJob(TcpMemoryBuffer* RB);
   HttpHandlerJob(const HttpHandlerJob&) = delete;
   HttpHandlerJob(const HttpHandlerJob&&) = delete;
-  virtual void Do(Job* Trigger = nullptr) override;
+
+  Step OnStep(Job* Trigger) override;
 
  private:
   enum class StateEnum : int {
@@ -21,18 +22,18 @@ class HttpHandlerJob final : public TcpHandlerJob {
     kVerifyCallbackSetting,
     kInvokeCallbackJobStart,
     kInvokeCallbackJobFinish,
-    kFinish
+    kFinish,
   };
   StateEnum State;
   HttpRequest Request;
-  void DoStart();
-  void DoFinish();
-  void DoParseTcpPackage();
-  void DoDispatchRequest();
-  void DoVerifyCallbackSetting();
-  void DoInvokeCallbackJobStart();
-  void DoInvokeCallbackJobFinish(Job* Child);
-  void Response200OK(const std::string &Body);
+
+  Step DoParseTcpPackage();
+  Step DoDispatchRequest();
+  Step DoVerifyCallbackSetting();
+  Step DoInvokeCallbackJobStart();
+  Step DoInvokeCallbackJobFinish(Job* Child);
+
+  void Response200OK(const std::string& Body);
   void Response400BadRequest();
   void Response500InternalServerError();
   void Response501NotImplemented();

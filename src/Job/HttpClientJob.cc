@@ -62,41 +62,54 @@ size_t HeaderFunction(char *Ptr, size_t Size, size_t NItems, void *UserData) {
 }
 }  // namespace http_client_impl
 
-HttpClientJob::HttpClientJob() : IOJob(), TimeoutMS(1000), State(StateEnum::kCurlStart) {}
+HttpClientJob::HttpClientJob()
+    : IOJob(),
+      TimeoutMS(1000),
+      State(StateEnum::kIssue),
+      CurlEasy(nullptr),
+      CurlAttached(false) {}
 
-void HttpClientJob::Do(Job *Trigger) {
+Job::Step HttpClientJob::OnStep(Job *Trigger) {
   switch (State) {
-    case StateEnum::kCurlStart:
-      this->DoCurlStart();
-      break;
-    case StateEnum::kCurlFinish:
-      this->DoCurlFinish();
-      break;
+    case StateEnum::kIssue:
+      return DoIssue();
+
+    case StateEnum::kAwaitResult:
+      // Reached via either:
+      //   * cURL completion: `WorkerThread::CurlMultiStatusCheck` will detach
+      //     and cleanup the easy handle right after this driver call returns.
+      //   * Timeout from DealDelayQueue: ErrCode == kErrTimeout. The easy
+      //     handle is still attached; cURL's own CURLOPT_TIMEOUT_MS will
+      //     produce a CURLMSG_DONE shortly after, at which point the worker
+      //     thread cleanup path runs (DQueue.Remove returns null since we
+      //     already left the queue, so the cleanup is the only side effect).
+      // In neither case do we touch the easy handle here, to avoid a double
+      // cleanup with `WorkerThread::CurlMultiStatusCheck`.
+      CurlEasy = nullptr;
+      CurlAttached = false;
+      return Step::kDone;
+
     case StateEnum::kError:
-      this->DoError();
-      break;
-    default:
-      break;
+      return Step::kDone;
   }
+  return Step::kDone;
 }
 
-void HttpClientJob::OnTimeout() {
-  LOG_TRACE("%s", "HttpClientJob::OnTimeout");
-  int Running;
-  curl_multi_socket_action(worker_impl::g_ThisThread->CurlMultiHandle, CURL_SOCKET_TIMEOUT, 0,
-                           &Running);
-  ErrCode = kErrTimeout;
-  NotifyParent();
-  DeleteThis();
+void HttpClientJob::OnCancel() {
+  // Parent finished early — release the cURL easy handle if we still own it.
+  if (CurlAttached && CurlEasy != nullptr) {
+    curl_multi_remove_handle(worker_impl::g_ThisThread->CurlMultiHandle, CurlEasy);
+    curl_easy_cleanup(CurlEasy);
+  }
+  CurlEasy = nullptr;
+  CurlAttached = false;
 }
 
-void HttpClientJob::DoCurlStart() {
-  // init cURL easy
+Job::Step HttpClientJob::DoIssue() {
   CurlEasy = curl_easy_init();
   if (CurlEasy == nullptr) {
     State = StateEnum::kError;
-    this->Do();
-    return;
+    return Step::kContinue;
   }
   curl_easy_setopt(CurlEasy, CURLOPT_TIMEOUT_MS, static_cast<long>(TimeoutMS));
   curl_easy_setopt(CurlEasy, CURLOPT_HEADERDATA, this);
@@ -104,9 +117,7 @@ void HttpClientJob::DoCurlStart() {
   curl_easy_setopt(CurlEasy, CURLOPT_WRITEDATA, this);
   curl_easy_setopt(CurlEasy, CURLOPT_WRITEFUNCTION, http_client_impl::WriteFunction);
   curl_easy_setopt(CurlEasy, CURLOPT_NOSIGNAL, 1L);
-  // url
   curl_easy_setopt(CurlEasy, CURLOPT_URL, Request.GetUrl().c_str());
-  // body
   switch (Request.Method) {
     case HttpRequest::MethodEnum::kGet:
       curl_easy_setopt(CurlEasy, CURLOPT_HTTPGET, 1L);
@@ -115,7 +126,7 @@ void HttpClientJob::DoCurlStart() {
       curl_easy_setopt(CurlEasy, CURLOPT_POST, 1L);
       curl_easy_setopt(CurlEasy, CURLOPT_POSTFIELDS, Request.Body.data());
       curl_easy_setopt(CurlEasy, CURLOPT_POSTFIELDSIZE, Request.Body.size());
-      // avoid cURL's `Content-Type: application/x-www-form-urlencoded`
+      // avoid cURL's default `Content-Type: application/x-www-form-urlencoded`
       auto MapIt = Request.Headers.find("Content-Type");
       if (MapIt == Request.Headers.end()) {
         Request.Headers.insert(std::make_pair("Content-Type", ""));
@@ -125,7 +136,6 @@ void HttpClientJob::DoCurlStart() {
     default:
       break;
   }
-  // headers
   curl_slist *CurlHeaderList = nullptr;
   for (const auto &PV : Request.Headers) {
     thread_local std::string Line;
@@ -134,24 +144,14 @@ void HttpClientJob::DoCurlStart() {
     CurlHeaderList = curl_slist_append(CurlHeaderList, Line.c_str());
   }
   curl_easy_setopt(CurlEasy, CURLOPT_HTTPHEADER, CurlHeaderList);
-  // join queue
-  this->JoinDelayQueue(this->TimeoutMS);
+  this->ArmTimeout(this->TimeoutMS);
   CurlPrivate PrivateUnion;
   PrivateUnion.JobId = GetJobId();
   curl_easy_setopt(CurlEasy, CURLOPT_PRIVATE, PrivateUnion.Ptr);
-  // perform
   curl_multi_add_handle(worker_impl::g_ThisThread->CurlMultiHandle, CurlEasy);
-  State = StateEnum::kCurlFinish;
-}
-
-void HttpClientJob::DoCurlFinish() {
-  NotifyParent();
-  DeleteThis();
-}
-
-void HttpClientJob::DoError() {
-  NotifyParent();
-  DeleteThis();
+  CurlAttached = true;
+  State = StateEnum::kAwaitResult;
+  return Step::kWaiting;
 }
 
 }  // namespace wcbot

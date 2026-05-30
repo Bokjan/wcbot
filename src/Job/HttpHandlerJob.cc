@@ -11,7 +11,6 @@
 #include "../Core/Engine.h"
 #include "../Core/EngineImpl.h"
 #include "../Job/MessageCallbackJob.h"
-#include "../Job/SilentPushJob.h"
 #include "../ThirdParty/WXBizMsgCrypt/WXBizMsgCrypt.h"
 #include "../Utility/Common.h"
 #include "../WeCom/ClientMessageImpl.h"
@@ -20,74 +19,60 @@ namespace wcbot {
 
 HttpHandlerJob::HttpHandlerJob(TcpMemoryBuffer* RB) : TcpHandlerJob(RB), State(StateEnum::kStart) {}
 
-void HttpHandlerJob::Do(Job* Trigger) {
-  // LOG_TRACE("HttpHandlerJob::Do trigger=%p, state=%d", Trigger, State);
+Job::Step HttpHandlerJob::OnStep(Job* Trigger) {
   switch (State) {
     case StateEnum::kStart:
-      this->DoStart();
-      break;
+      State = StateEnum::kParseTcpPackage;
+      return Step::kContinue;
+
     case StateEnum::kParseTcpPackage:
-      this->DoParseTcpPackage();
-      break;
+      return DoParseTcpPackage();
+
     case StateEnum::kDispatchRequest:
-      this->DoDispatchRequest();
-      break;
+      return DoDispatchRequest();
+
     case StateEnum::kVerifyCallbackSetting:
-      this->DoVerifyCallbackSetting();
-      break;
+      return DoVerifyCallbackSetting();
+
     case StateEnum::kInvokeCallbackJobStart:
-      this->DoInvokeCallbackJobStart();
-      break;
+      return DoInvokeCallbackJobStart();
+
     case StateEnum::kInvokeCallbackJobFinish:
-      this->DoInvokeCallbackJobFinish(Trigger);
-      break;
+      return DoInvokeCallbackJobFinish(Trigger);
+
     case StateEnum::kFinish:
-      this->DoFinish();
-      break;
-    default:
-      break;
+      return Step::kDone;
   }
+  return Step::kDone;
 }
 
-void HttpHandlerJob::DoStart() {
-  State = StateEnum::kParseTcpPackage;
-  this->Do();
-}
-
-void HttpHandlerJob::DoFinish() { DeleteThis(); }
-
-void HttpHandlerJob::DoParseTcpPackage() {
+Job::Step HttpHandlerJob::DoParseTcpPackage() {
   bool Success = Request.Parse(ReceiveBuffer->GetBase(), ReceiveBuffer->GetLength());
   if (!Success) {
-    this->Response400BadRequest();
+    Response400BadRequest();
     State = StateEnum::kFinish;
-  } else {
-    State = StateEnum::kDispatchRequest;
+    return Step::kContinue;
   }
-  this->Do();
+  State = StateEnum::kDispatchRequest;
+  return Step::kContinue;
 }
 
-void HttpHandlerJob::DoDispatchRequest() {
-  do {
-    // callback message?
-    if (Request.Method == HttpRequest::MethodEnum::kPost &&
-        Request.Path == Engine::Get().GetImpl().Config.Bot.CallbackPath) {
-      State = StateEnum::kInvokeCallbackJobStart;
-      this->Do();
-      break;
-    }
-    // verify callback?
-    if (Request.Method == HttpRequest::MethodEnum::kGet &&
-        Request.Path == Engine::Get().GetImpl().Config.Bot.CallbackPath) {
-      State = StateEnum::kVerifyCallbackSetting;
-      this->Do();
-      break;
-    }
-    // else
-    this->Response400BadRequest();
-    State = StateEnum::kFinish;
-    this->Do();
-  } while (false);
+Job::Step HttpHandlerJob::DoDispatchRequest() {
+  // callback message?
+  if (Request.Method == HttpRequest::MethodEnum::kPost &&
+      Request.Path == Engine::Get().GetImpl().Config.Bot.CallbackPath) {
+    State = StateEnum::kInvokeCallbackJobStart;
+    return Step::kContinue;
+  }
+  // verify callback?
+  if (Request.Method == HttpRequest::MethodEnum::kGet &&
+      Request.Path == Engine::Get().GetImpl().Config.Bot.CallbackPath) {
+    State = StateEnum::kVerifyCallbackSetting;
+    return Step::kContinue;
+  }
+  Response400BadRequest();
+  State = StateEnum::kFinish;
+  return Step::kContinue;
 }
 
 static void SplitString(const std::string& Input, std::vector<std::string>& Output,
@@ -116,7 +101,7 @@ static void GetQueryStringKV(const std::string& Input, std::map<std::string, std
   }
 }
 
-void HttpHandlerJob::DoVerifyCallbackSetting() {
+Job::Step HttpHandlerJob::DoVerifyCallbackSetting() {
   thread_local std::map<std::string, std::string> KVPairs;
   KVPairs.clear();
   std::string UrlDecoded = utility::UrlDecode(Request.QueryString);
@@ -128,23 +113,20 @@ void HttpHandlerJob::DoVerifyCallbackSetting() {
                                                  KVPairs["nonce"], KVPairs["echostr"], Decrypted);
   if (Ret != 0) {
     LOG_WARN("WXBizMsgCrypt::VerifyURL ret=%d, qs(decoded)=%s", Ret, UrlDecoded.c_str());
-    this->Response400BadRequest();
+    Response400BadRequest();
   } else {
-    this->Response200OK(Decrypted);
+    Response200OK(Decrypted);
   }
   State = StateEnum::kFinish;
-  this->Do();
+  return Step::kContinue;
 }
 
-void HttpHandlerJob::DoInvokeCallbackJobStart() {
-  // handler registered?
-  if (Engine::Get().GetImpl().CbHandlerCreator == nullptr) {
-    this->Response501NotImplemented();
+Job::Step HttpHandlerJob::DoInvokeCallbackJobStart() {
+  if (!Engine::Get().GetImpl().CbHandlerCreator) {
+    Response501NotImplemented();
     State = StateEnum::kFinish;
-    this->Do();
-    return;
+    return Step::kContinue;
   }
-  // decrypt request
   thread_local std::map<std::string, std::string> KVPairs;
   KVPairs.clear();
   std::string UrlDecoded = utility::UrlDecode(Request.QueryString);
@@ -155,34 +137,28 @@ void HttpHandlerJob::DoInvokeCallbackJobStart() {
       KVPairs["msg_signature"], KVPairs["timestamp"], KVPairs["nonce"], Request.Body, Decrypted);
   if (Ret != 0) {
     LOG_WARN("WXBizMsgCrypt::DecryptMsg ret=%d", Ret);
-    this->Response400BadRequest();
+    Response400BadRequest();
     State = StateEnum::kFinish;
-    this->Do();
-    return;
+    return Step::kContinue;
   }
-  // LOG_DEBUG("%s", Decrypted.c_str());
-  // parse xml
   auto* ClientMsg = wecom::client_message_impl::GenerateClientMessageByXml(Decrypted);
   if (ClientMsg == nullptr) {
     LOG_WARN("%s", "wecom::client_message_impl::GenerateClientMessageByXml failed");
-    this->Response400BadRequest();
+    Response400BadRequest();
     State = StateEnum::kFinish;
-    this->Do();
-    return;
+    return Step::kContinue;
   }
-  // create a handler and invoke
   auto* Child = Engine::Get().GetImpl().CbHandlerCreator();
   Child->SetRequest(ClientMsg);
   State = StateEnum::kInvokeCallbackJobFinish;
   InvokeChild(Child);
+  return Step::kWaiting;
 }
 
 static bool GetResponseBodyByCallbackMessage(MessageCallbackJob* J, std::string& Encrypted) {
   auto Xml = J->GetResponse()->GetXml();
   char Nonce[32];
   char Timestamp[32];
-  // Use thread-safe RNG: `rand()` is not thread-safe and would race across
-  // worker threads.
   snprintf(Nonce, sizeof(Nonce), "%u", utility::ThreadLocalRand());
   snprintf(Timestamp, sizeof(Timestamp), "%ld", time(nullptr));
   int Ret = Engine::Get().GetImpl().Cryptor->EncryptMsg(Xml, Timestamp, Nonce, Encrypted);
@@ -194,40 +170,34 @@ static bool GetResponseBodyByCallbackMessage(MessageCallbackJob* J, std::string&
   return true;
 }
 
-void HttpHandlerJob::DoInvokeCallbackJobFinish(Job* ChildBase) {
-  LOG_TRACE("");
-  auto* Child = dynamic_cast<MessageCallbackJob*>(ChildBase);
+Job::Step HttpHandlerJob::DoInvokeCallbackJobFinish(Job* ChildBase) {
+  auto* Child = AsJob<MessageCallbackJob>(ChildBase);
   do {
-    // class type doesn't match?
     if (Child == nullptr) {
-      LOG_ERROR("%s", "HttpHandlerJob dynamic_cast<MessageCallbackJob*>(ChildBase) failed");
-      this->Response500InternalServerError();
+      LOG_ERROR("%s", "HttpHandlerJob: trigger is not a MessageCallbackJob");
+      Response500InternalServerError();
       break;
     }
-    // response ptr is null?
     if (Child->GetResponse() == nullptr) {
-      // WeCom allows user to temporarily reply a empty 200 OK
-      // then send the actual reply by `WebhookUrl`
-      LOG_TRACE("%s", "response 200 OK with empty body");
-      this->Response200OK("");
+      // WeCom allows a temporary 200 OK with empty body; the actual reply
+      // can be pushed back via the webhook URL later.
+      Response200OK("");
       break;
     }
-    // get the XML, encrypt and reply
     thread_local std::string Encrypted;
     Encrypted.clear();
     bool Check = GetResponseBodyByCallbackMessage(Child, Encrypted);
     if (Check) {
-      this->Response200OK(Encrypted);
+      Response200OK(Encrypted);
     } else {
-      this->Response500InternalServerError();
+      Response500InternalServerError();
     }
   } while (false);
   State = StateEnum::kFinish;
-  this->Do();
+  return Step::kContinue;
 }
 
 void HttpHandlerJob::Response200OK(const std::string& Body) {
-  LOG_TRACE("%s", Body.c_str());
   MemoryBuffer* MB = MemoryBuffer::Create();
   MEMBUF_APP(MB, "HTTP/1.1 200 OK\r\nContent-Length: ");
   char PrintBuffer[32];

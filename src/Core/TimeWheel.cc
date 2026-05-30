@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <list>
+#include <utility>
 
 #include "../Job/Job.h"
 #include "../Utility/Logger.h"
@@ -18,26 +19,21 @@ static constexpr size_t kSlotSizeMonth = 12 + 1;
 
 class TimeWheelImpl {
  public:
+  // Each SlotElement carries a monotonically increasing `Id`. We use `Id` for
+  // sort/unique deduplication on the minute slot — comparing the underlying
+  // `std::function<Job*()>` is not possible (no operator< / operator==), and
+  // even comparing function pointers is undefined behaviour per the C++
+  // standard. The Id is allocated once at AddCron time and travels with the
+  // entry as it is spliced from month → DoW/DoM → hour → minute → month.
   struct SlotElement {
+    uint64_t Id;
     CronTrigger Trigger;
     FN_CreateJob Function;
-    bool operator<(const SlotElement &Other) const {
-      // The C++ standard only guarantees `==` / `!=` on function pointers;
-      // ordered comparisons are implementation-defined and trigger
-      // `-Wordered-compare-function-pointers` on clang. Cast to `uintptr_t`
-      // to obtain a well-defined, stable total order — the value is only
-      // used to deduplicate `std::list::sort + unique` and never reflects
-      // any semantic ordering of the callbacks.
-      if (Function == Other.Function) {
-        return Trigger < Other.Trigger;
-      }
-      return reinterpret_cast<std::uintptr_t>(Function) <
-             reinterpret_cast<std::uintptr_t>(Other.Function);
-    }
-    bool operator==(const SlotElement &Other) const {
-      return Function == Other.Function && Trigger == Other.Trigger;
-    }
+    bool operator<(const SlotElement &Other) const { return Id < Other.Id; }
+    bool operator==(const SlotElement &Other) const { return Id == Other.Id; }
   };
+
+  uint64_t NextId;
 
   int CurrentMinute;
   int CurrentHour;
@@ -50,6 +46,8 @@ class TimeWheelImpl {
   std::list<SlotElement> SlotDayOfWeek[kSlotSizeDayOfWeek];
   std::list<SlotElement> SlotDayOfMonth[kSlotSizeDayOfMonth];
   std::list<SlotElement> SlotMonth[kSlotSizeMonth];
+
+  TimeWheelImpl() : NextId(1) {}
 
   void UpdateCurrentInfo();
   void AddCron(const CronTrigger &Trigger, FN_CreateJob Function);
@@ -78,7 +76,7 @@ void TimeWheelImpl::UpdateCurrentInfo() {
 }
 
 void TimeWheel::AddCron(const CronTrigger &Trigger, FN_CreateJob Function) {
-  PImpl->AddCron(Trigger, Function);
+  PImpl->AddCron(Trigger, std::move(Function));
 }
 
 void TimeWheelImpl::AddCron(const CronTrigger &Trigger, FN_CreateJob Function) {
@@ -105,7 +103,8 @@ void TimeWheelImpl::AddCron(const CronTrigger &Trigger, FN_CreateJob Function) {
     return;
   }
   // add
-  SlotMonth[Target].emplace_back((SlotElement){Trigger, Function});
+  SlotElement Elem{NextId++, Trigger, std::move(Function)};
+  SlotMonth[Target].emplace_back(std::move(Elem));
 }
 
 void TimeWheel::Tick(FN_TimeWheelTickFunction Function, void *UserData) {

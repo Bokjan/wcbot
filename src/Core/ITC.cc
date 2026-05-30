@@ -82,7 +82,8 @@ void TcpWorkerToMain::Process() {
 }
 
 void JobCreateAndRun::Process() {
-  Function()->Do();
+  Job *J = Function();
+  job_impl::Driver::Run(J, J);
   this->DeleteThis();
 }
 

@@ -49,7 +49,7 @@ TCP accept  ──► [main]  ServerCodec.IsComplete?  ──► ITC ──► [
 ## Prerequisites
 
 - CMake 3.10+ (tested up to CMake 3.30 via the `<min>...<max>` form)
-- C++ compiler with C++11 support (gcc 4.8.5 / clang 3.4 or newer)
+- C++ compiler with C++17 support (gcc 7+ / clang 5+)
 - `libuv`
 - `libcurl`
 - `OpenSSL` (`libcrypto` + `libssl`)
@@ -123,7 +123,45 @@ int main(int argc, char* argv[]) {
 }
 ```
 
-See `sample/` for a complete example, including a cron-triggered job.
+A custom `Job` is a state machine driven by the framework via `OnStep`:
+
+```cpp
+class MyJob final : public wcbot::Job {
+ public:
+  Step OnStep(wcbot::Job* Trigger) override {
+    switch (State) {
+      case kStart:
+        InvokeChild(new wcbot::HttpClientJob{ /* ... */ });
+        State = kAwait;
+        return Step::kWaiting;          // suspend until child finishes
+      case kAwait:
+        if (auto* C = AsJob<wcbot::HttpClientJob>(Trigger)) {
+          // Read C->Response here — the child will be deleted right after
+          // OnStep returns; capture anything you still need.
+        }
+        return Step::kDone;             // framework deletes us, notifies parent
+    }
+    return Step::kDone;
+  }
+  void OnCancel() override { /* release external resources if any */ }
+};
+```
+
+Key contract points:
+
+- The framework owns lifetime: `delete this` happens exactly once, in the
+  framework, after `OnStep` returns `Step::kDone`.
+- `Trigger` is `this` for self-driven steps (initial activation, sleep
+  wakeup, armed-timeout fired) or a child `Job*` after the child finishes.
+- For IO with timeout, derive from `wcbot::IOJob` and call `ArmTimeout(ms)`
+  before returning `Step::kWaiting`. On timeout the framework sets
+  `ErrCode = kErrTimeout` and re-enters `OnStep(this)`.
+- When a job is cancelled (parent finished early or `Cancel()` called),
+  `OnCancel` runs so the job can release external resources (e.g. detach a
+  cURL handle); the framework deletes the job right after.
+
+See `sample/` for full examples (`QBJob` for cron, `EchoCallbackJob` for
+inbound message handling).
 
 ## Recent improvements
 

@@ -5,7 +5,7 @@
 
 namespace wcbot {
 
-using FN_TimeWheelTickFunction = void (*)(FN_CreateJob, void *UserData);
+using FN_TimeWheelTickFunction = void (*)(const FN_CreateJob &, void *UserData);
 
 class TimeWheelImpl;
 class TimeWheel final {

@@ -68,7 +68,11 @@ void ThreadContext::DealDealyQueue() {
   const auto Now = std::chrono::steady_clock::now();
   IOJob *JobPtr;
   while ((JobPtr = DQueue.Dequeue(Now)) != nullptr) {
-    JobPtr->OnTimeout();
+    // Timeout fired: surface the framework-defined error code and re-drive
+    // the job through the v2 driver so that termination / cancellation
+    // semantics (delete, notify parent, cancel children) are uniform.
+    JobPtr->ErrCode = Job::kErrTimeout;
+    job_impl::Driver::Run(JobPtr, JobPtr);
   }
 }
 
@@ -76,7 +80,7 @@ void ThreadContext::DealSleepQueue() {
   const auto Now = std::chrono::steady_clock::now();
   Job *JobPtr;
   while ((JobPtr = SQueue.Dequeue(Now)) != nullptr) {
-    JobPtr->Do(nullptr);
+    job_impl::Driver::Run(JobPtr, JobPtr);
   }
 }
 
@@ -124,7 +128,7 @@ void EntryPoint(void *Argument) {
 void DispatchTcp(TcpMemoryBuffer *Buffer) {
   // there's only one possible handler
   Job *NewJob = new HttpHandlerJob(Buffer);
-  NewJob->Do();
+  job_impl::Driver::Run(NewJob, NewJob);
 }
 
 namespace curl {
@@ -162,7 +166,7 @@ static void CurlMultiStatusCheck(CURLM *Multi) {
         if (J != nullptr) {
           HttpClientJob *HCJ = dynamic_cast<HttpClientJob *>(J);
           HCJ->Response.StatusCode = static_cast<int>(ResponseCode);
-          HCJ->Do();
+          job_impl::Driver::Run(HCJ, HCJ);
         }
         curl_multi_remove_handle(Multi, Message->easy_handle);
         curl_easy_cleanup(Message->easy_handle);
