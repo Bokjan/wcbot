@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "../Job/Job.h"
 #include "../Utility/CronTrigger.h"
 
@@ -17,7 +19,7 @@ class TimeWheel final {
   void Tick(FN_TimeWheelTickFunction Function, void *UserData);  // invoke this every minute!
 
  private:
-  TimeWheelImpl *PImpl;
+  std::unique_ptr<TimeWheelImpl> PImpl;
 };
 
 }  // namespace wcbot

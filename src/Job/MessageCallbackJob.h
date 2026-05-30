@@ -25,8 +25,22 @@ class MessageCallbackJob : public Job {
   MessageCallbackJob();
   ~MessageCallbackJob() override;
 
-  void SetRequest(wecom::ClientMessage *Target);
-  void SetResponse(wecom::XmlServerMessage *Target);
+  // Take ownership of the inbound request / outbound response. Both methods
+  // overwrite any previously set value (the previous owner is freed by the
+  // unique_ptr move-assignment).
+  void SetRequest(std::unique_ptr<wecom::ClientMessage> Target);
+  void SetResponse(std::unique_ptr<wecom::XmlServerMessage> Target);
+
+  // Backwards-compatibility helpers — the framework / call sites that still
+  // produce raw pointers (e.g. user code that writes `SetResponse(new T())`)
+  // can keep doing so; we just adopt the pointer immediately.
+  void SetRequest(wecom::ClientMessage *Target) {
+    SetRequest(std::unique_ptr<wecom::ClientMessage>(Target));
+  }
+  void SetResponse(wecom::XmlServerMessage *Target) {
+    SetResponse(std::unique_ptr<wecom::XmlServerMessage>(Target));
+  }
+
   wecom::XmlServerMessage *GetResponse() { return Response.get(); }
 
   // Each user subclass implements OnStep.

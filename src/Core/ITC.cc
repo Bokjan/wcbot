@@ -17,7 +17,8 @@ class ItcQueueImpl {
 
 ItcQueue::ItcQueue() : PImpl(new ItcQueueImpl()) {}
 
-ItcQueue::~ItcQueue() { delete PImpl; }
+// Defined here so the compiler sees the full `ItcQueueImpl` definition.
+ItcQueue::~ItcQueue() = default;
 
 void ItcQueue::Enqueue(ItcEvent* Event) {
   std::lock_guard<std::mutex> Lock(PImpl->Mutex);

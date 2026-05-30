@@ -6,12 +6,12 @@ MessageCallbackJob::MessageCallbackJob() = default;
 
 MessageCallbackJob::~MessageCallbackJob() = default;
 
-void MessageCallbackJob::SetRequest(wecom::ClientMessage *Target) {
-  Request.reset(Target);
+void MessageCallbackJob::SetRequest(std::unique_ptr<wecom::ClientMessage> Target) {
+  Request = std::move(Target);
 }
 
-void MessageCallbackJob::SetResponse(wecom::XmlServerMessage *Target) {
-  Response.reset(Target);
+void MessageCallbackJob::SetResponse(std::unique_ptr<wecom::XmlServerMessage> Target) {
+  Response = std::move(Target);
 }
 
 }  // namespace wcbot

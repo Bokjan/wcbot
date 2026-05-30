@@ -82,6 +82,13 @@ class Job {
   // Spawn a child job. Ownership is transferred to the framework; the child
   // is driven on the same worker thread. The child's first `OnStep` will
   // observe `Trigger == child_self`.
+  //
+  // Note: callers idiomatically pass `new ChildJob(...)`; the bare `new` is
+  // intentional — it expresses "the framework now owns this object" and
+  // mirrors the `delete` that happens inside the framework on kDone /
+  // OnCancel. Using a `unique_ptr<Job>` here would not improve safety
+  // because the wrapper would have to be released right back into a raw
+  // pointer at the call boundary.
   void InvokeChild(Job *Child);
 
   // Sleep for `Millisecond` and then re-enter `OnStep(this)`. Must be paired

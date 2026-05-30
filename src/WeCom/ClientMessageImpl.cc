@@ -1,6 +1,7 @@
 #include "../WeCom/ClientMessageImpl.h"
 
 #include <cstring>
+#include <memory>
 
 #include "../ThirdParty/tinyxml2/tinyxml2.h"
 #include "../Utility/Logger.h"
@@ -17,9 +18,9 @@ namespace wcbot {
 namespace wecom {
 namespace client_message_impl {
 
-ClientMessage* GenerateClientMessageByXml(const std::string& XmlStr) {
+std::unique_ptr<ClientMessage> GenerateClientMessageByXml(const std::string& XmlStr) {
   tinyxml2::XMLDocument Xml;
-  ClientMessage* Msg = nullptr;
+  std::unique_ptr<ClientMessage> Msg;
   do {
     // get `MsgType`
     int ParseRet = Xml.Parse(XmlStr.c_str(), XmlStr.length());
@@ -39,24 +40,20 @@ ClientMessage* GenerateClientMessageByXml(const std::string& XmlStr) {
       break;
     }
     // dispatch
-    // LOG_DEBUG("MsgType->GetText()=%s", MsgType->GetText());
     if (STRNCMP_CCPTR_LITERAL(MsgType->GetText(), "text")) {
-      Msg = new TextClientMessage(Root);
+      Msg.reset(new TextClientMessage(Root));
     } else if (STRNCMP_CCPTR_LITERAL(MsgType->GetText(), "image")) {
-      Msg = new ImageClientMessage(Root);
+      Msg.reset(new ImageClientMessage(Root));
     } else if (STRNCMP_CCPTR_LITERAL(MsgType->GetText(), "event")) {
-      Msg = new EventClientMessage(Root);
+      Msg.reset(new EventClientMessage(Root));
     } else if (STRNCMP_CCPTR_LITERAL(MsgType->GetText(), "attachment")) {
-      Msg = new AttachmentClientMessage(Root);
+      Msg.reset(new AttachmentClientMessage(Root));
     } else if (STRNCMP_CCPTR_LITERAL(MsgType->GetText(), "mixed")) {
-      Msg = new MixedClientMessage(Root);
+      Msg.reset(new MixedClientMessage(Root));
     }
   } while (false);
-  if (Msg != nullptr) {
-    if (Msg->HasExtractError) {
-      delete Msg;
-      Msg = nullptr;
-    }
+  if (Msg != nullptr && Msg->HasExtractError) {
+    Msg.reset();
   }
   return Msg;
 }

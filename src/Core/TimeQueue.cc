@@ -38,7 +38,8 @@ class DelayQueueImpl {
 
 DelayQueue::DelayQueue() : PImpl(new DelayQueueImpl) {}
 
-DelayQueue::~DelayQueue() { delete PImpl; }
+// Defined here so the compiler sees the full `DelayQueueImpl` definition.
+DelayQueue::~DelayQueue() = default;
 
 void DelayQueue::Join(IOJob *J, int MS) {
   J->SetJobId(PImpl->JobSeq++);
@@ -114,7 +115,8 @@ class SleepQueueImpl {
 
 SleepQueue::SleepQueue() : PImpl(new SleepQueueImpl()) {}
 
-SleepQueue::~SleepQueue() { delete PImpl; }
+// Defined here so the compiler sees the full `SleepQueueImpl` definition.
+SleepQueue::~SleepQueue() = default;
 
 void SleepQueue::Join(Job *J, int Millisecond) {
   std::chrono::milliseconds Period(Millisecond);

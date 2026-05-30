@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <memory>
 
 namespace wcbot {
 
@@ -18,7 +19,7 @@ class DelayQueue {
   IOJob* Dequeue(std::chrono::time_point<std::chrono::steady_clock> Now);
 
  protected:
-  DelayQueueImpl* PImpl;
+  std::unique_ptr<DelayQueueImpl> PImpl;
 };
 
 class SleepQueue final {
@@ -29,7 +30,7 @@ class SleepQueue final {
   Job* Dequeue(std::chrono::time_point<std::chrono::steady_clock> Now);
 
  private:
-  SleepQueueImpl* PImpl;
+  std::unique_ptr<SleepQueueImpl> PImpl;
 };
 
 }  // namespace wcbot

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -10,6 +11,7 @@
 #include "../Core/ITC.h"
 #include "../Core/TimeWheel.h"
 #include "../Job/MessageCallbackJob.h"
+#include "../Utility/Logger.h"
 
 namespace Tencent {
 class WXBizMsgCrypt;
@@ -55,23 +57,35 @@ class ThreadDispatcher;
 class EngineImpl final {
  public:
   bool IsFork;
+  // Owned by libuv, not us — uv_default_loop() returns a singleton.
   uv_loop_t* UvLoop;
   uv_signal_t UvSignal_SIGINT;
   uv_signal_t UvSignal_SIGTERM;
 
   BotConfig Config;
-  std::vector<Codec*> ServerCodecs;
-  std::vector<Codec*> ClientCodecs;
-  std::vector<ThreadContext*> Threads;
-  ThreadDispatcher* Dispatcher;
+  // All four collections own their elements. Public access stays via
+  // `obj.get()` in hot paths or transparent `->` through the unique_ptr.
+  std::vector<std::unique_ptr<Codec>> ServerCodecs;
+  std::vector<std::unique_ptr<Codec>> ClientCodecs;
+  std::vector<std::unique_ptr<ThreadContext>> Threads;
+  std::unique_ptr<ThreadDispatcher> Dispatcher;
   uint64_t TcpConnectionId;
+  // libuv tcp handles live until their `uv_close` callback fires; ownership
+  // is bound to the libuv close protocol and stays as raw pointers here.
   std::map<uint64_t, uv_tcp_t*> TcpIdToConn;
 
   uv_timer_t UvCronTimer;  // 1 minute
   TimeWheel CronTimeWheel;
   FN_CreateCallbackHandlerJob CbHandlerCreator;
 
-  Tencent::WXBizMsgCrypt* Cryptor;
+  std::unique_ptr<Tencent::WXBizMsgCrypt> Cryptor;
+
+  // Optional dynamically-allocated logger (e.g. `SyncFileLogger`). When set,
+  // it is also installed as the global `logger_internal::g_Logger`. The
+  // engine owns it; on destruction we restore the static stderr default
+  // before letting the unique_ptr free this one to avoid a dangling global
+  // pointer.
+  std::unique_ptr<Logger> OwnedLogger;
 
   EngineImpl();
   ~EngineImpl();

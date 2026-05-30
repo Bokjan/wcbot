@@ -3,6 +3,9 @@
 #include <cstdlib>
 #include <ctime>
 
+#include <memory>
+#include <utility>
+
 #include <curl/curl.h>
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
@@ -73,7 +76,8 @@ static inline bool RapidJsonGetUInt32(const rapidjson::Value &Value, const char 
     break;                \
   }
 
-static bool InternalParseConfig(BotConfig &Config, const rapidjson::Document &Json) {
+static bool InternalParseConfig(EngineImpl &EImpl, const rapidjson::Document &Json) {
+  BotConfig &Config = EImpl.Config;
   Config.ParseOk = false;
   do {
     // Bot
@@ -128,9 +132,13 @@ static bool InternalParseConfig(BotConfig &Config, const rapidjson::Document &Js
           break;
         }
         BREAK_ON_FALSE(RapidJsonGetString(Log, "FilePath", Config.Log.FilePath));
-        auto *SFL = new SyncFileLogger;
+        auto SFL = std::unique_ptr<SyncFileLogger>(new SyncFileLogger);
         BREAK_ON_FALSE(SFL->SetFile(Config.Log.FilePath) == 0);
-        logger_internal::SetLogger(SFL);
+        logger_internal::SetLogger(SFL.get());
+        // Engine takes ownership; on destruction the engine will swap the
+        // global pointer back to the static stderr logger BEFORE freeing
+        // this one, so no dangling g_Logger.
+        EImpl.OwnedLogger = std::move(SFL);
       } while (false);
       if (RapidJsonGetString(Log, "LogLevel", Config.Log.LogLevel)) {
         BREAK_ON_FALSE(logger_internal::g_Logger->SetLevel(Config.Log.LogLevel));
@@ -178,10 +186,8 @@ class RoundRobinThreadDispatcher final : public ThreadDispatcher {
 EngineImpl::EngineImpl()
     : IsFork(true),
       UvLoop(uv_default_loop()),
-      Dispatcher(nullptr),
       TcpConnectionId(0),
-      CbHandlerCreator(nullptr),
-      Cryptor(nullptr) {
+      CbHandlerCreator(nullptr) {
   main_impl::g_EImpl = this;
   // Note: PRNG seeding is done lazily per-thread in `utility::ThreadLocalRand`
   // (see Utility/Common.h). We avoid `srand()` here because `rand()` is not
@@ -202,7 +208,7 @@ bool EngineImpl::ParseConfig(const std::string &Path) {
     if (!Json.IsObject()) {
       break;
     }
-    Ret = InternalParseConfig(this->Config, Json);
+    Ret = InternalParseConfig(*this, Json);
   } while (false);
   return Ret;
 }
@@ -213,8 +219,8 @@ int EngineImpl::Run() {
     this->ActivateDaemon();
   }
   // start threads
-  for (ThreadContext *Ptr : Threads) {
-    uv_thread_create(&Ptr->UvThread, worker_impl::EntryPoint, Ptr);
+  for (auto &Ptr : Threads) {
+    uv_thread_create(&Ptr->UvThread, worker_impl::EntryPoint, Ptr.get());
   }
   // start server
   uv_tcp_t UvServerTcp;
@@ -231,7 +237,7 @@ int EngineImpl::Run() {
   int Ret = uv_run(this->UvLoop, UV_RUN_DEFAULT);
   LOG_TRACE("uv_run ret=%d", Ret);
   // join worker threads
-  for (ThreadContext *Ptr : Threads) {
+  for (auto &Ptr : Threads) {
     uv_thread_join(&Ptr->UvThread);
   }
   return Ret;
@@ -239,7 +245,7 @@ int EngineImpl::Run() {
 
 void EngineImpl::RegisterGlobals() {
   // server codec
-  ServerCodecs.push_back(new HttpRequestCodec());
+  ServerCodecs.emplace_back(std::unique_ptr<Codec>(new HttpRequestCodec()));
 }
 
 bool EngineImpl::InitializeCron() {
@@ -252,7 +258,7 @@ bool EngineImpl::InitializeCron() {
 }
 
 bool EngineImpl::InitializeCryptor() {
-  Cryptor = new Tencent::WXBizMsgCrypt(Config.Bot.Token, Config.Bot.EncodingAesKey, "");
+  Cryptor.reset(new Tencent::WXBizMsgCrypt(Config.Bot.Token, Config.Bot.EncodingAesKey, ""));
   return true;
 }
 
@@ -263,7 +269,7 @@ bool EngineImpl::Initialize() {
     BREAK_ON_FALSE(this->InitializeCryptor());
     BREAK_ON_FALSE(this->InitializeWorkerThreads());
     BREAK_ON_FALSE(this->InitializeSignalHandler());
-    this->Dispatcher = new RoundRobinThreadDispatcher(Config.Framework.WorkerThread);
+    this->Dispatcher.reset(new RoundRobinThreadDispatcher(Config.Framework.WorkerThread));
     if (curl_global_init(CURL_GLOBAL_ALL)) {
       LOG_ERROR("%s", "Could not init cURL");
       break;
@@ -275,45 +281,30 @@ bool EngineImpl::Initialize() {
 }
 
 void EngineImpl::Finalize() {
-  // server codec
-  for (auto Ptr : ServerCodecs) {
-    delete Ptr;
-  }
-  ServerCodecs.clear();
-  // client codec
-  for (auto Ptr : ClientCodecs) {
-    delete Ptr;
-  }
-  ClientCodecs.clear();
-  // worker thread
-  for (auto Ptr : Threads) {
-    delete Ptr;
-  }
-  Threads.clear();
-  // dispatcher (`delete nullptr` is well-defined; guard is unnecessary)
-  delete Dispatcher;
-  Dispatcher = nullptr;
-  // cryptor
-  delete Cryptor;
-  Cryptor = nullptr;
-  // logger: only the dynamically allocated SyncFileLogger is owned here;
-  // after delete, restore the default stderr logger so that any late log
-  // call does not dereference a freed pointer.
-  auto *SFL = dynamic_cast<SyncFileLogger *>(logger_internal::g_Logger);
-  if (SFL != nullptr) {
+  // Most owned resources are now `std::unique_ptr` and clean themselves up
+  // when the EngineImpl is destroyed. The two exceptions that need explicit
+  // ordering are:
+  //   1. The dynamically-allocated logger (e.g. SyncFileLogger): we must
+  //      restore the global `g_Logger` to the static stderr default BEFORE
+  //      letting our unique_ptr free the file logger, so any late log line
+  //      from a worker on shutdown does not dereference a freed pointer.
+  if (OwnedLogger != nullptr) {
     logger_internal::SetLogger(&logger_internal::DefaultStderrLogger);
-    delete SFL;
+    // OwnedLogger will be released when EngineImpl is destroyed.
   }
+  // 2. ServerCodecs / ClientCodecs / Threads / Dispatcher / Cryptor are all
+  //    `std::unique_ptr`s held in containers; their destruction order is
+  //    well-defined by member declaration order in `EngineImpl.h`.
 }
 
 bool EngineImpl::InitializeWorkerThreads() {
   for (uint32_t i = 0; i < Config.Framework.WorkerThread; ++i) {
-    ThreadContext *Worker = new ThreadContext();
+    auto Worker = std::unique_ptr<ThreadContext>(new ThreadContext());
     Worker->ThreadIndex = i;
     Worker->EImpl = this;
     uv_async_init(this->UvLoop, &Worker->WorkerToMainAsync, main_impl::OnItcAsyncSend);
-    Worker->WorkerToMainAsync.data = Worker;
-    Threads.push_back(Worker);
+    Worker->WorkerToMainAsync.data = Worker.get();
+    Threads.emplace_back(std::move(Worker));
   }
   return true;
 }
@@ -361,6 +352,10 @@ static void OnNewConnection(uv_stream_t *Tcp, int Status) {
   }
   EngineImpl *Impl = reinterpret_cast<EngineImpl *>(Tcp->data);
   uint64_t ConnId = Impl->NextTcpConnectionId();
+  // libuv handles must outlive the moment of `uv_close` — they are freed
+  // inside the close callback (`OnTcpClose`). This is libuv's protocol; we
+  // intentionally keep raw pointers here rather than wrapping in
+  // `unique_ptr` (which would race with the asynchronous close).
   uv_tcp_t *ClientTcp = new uv_tcp_t;
   Impl->TcpIdToConn[ConnId] = ClientTcp;
   TcpMemoryBuffer *Buffer = new TcpMemoryBuffer(ConnId, reinterpret_cast<uv_tcp_t *>(Tcp));
@@ -418,7 +413,7 @@ static void OnTcpRead(uv_stream_t *Handle, ssize_t NRead, const uv_buf_t *Buffer
   // just increase the buffer length value
   MemBuf->IncreaseLength(NRead);
   // run codec
-  for (auto *CodecPtr : PImpl->ServerCodecs) {
+  for (auto &CodecPtr : PImpl->ServerCodecs) {
     ssize_t ValidLength = CodecPtr->IsComplete(MemBuf);
     if (ValidLength > 0) {
       // create a new buf for this conn, to receive more pkgs
@@ -427,7 +422,7 @@ static void OnTcpRead(uv_stream_t *Handle, ssize_t NRead, const uv_buf_t *Buffer
       Handle->data = NewBuf;
       // dispatch a `TcpMainToWorker` async ITC event
       ssize_t Index = PImpl->Dispatcher->NextThreadIndex();
-      ThreadContext *Worker = PImpl->Threads[Index];
+      ThreadContext *Worker = PImpl->Threads[Index].get();
       ItcEvent *Event = new itc::TcpMainToWorker(MemBuf);
       Worker->MainToWorkerQueue.Enqueue(Event);
       // fire an async notification
@@ -461,6 +456,10 @@ struct UvWriteRequest {
   uv_buf_t UvBuffer;
 };
 
+// Note: `UvWriteRequest` is intentionally allocated with bare `new` and
+// freed inside `OnTcpWrite` once libuv finishes the asynchronous write.
+// Wrapping the struct in `std::unique_ptr` would not help because the
+// lifetime is dictated by libuv's callback delivery, not by this scope.
 void SendTcpToClient(MemoryBuffer *Buffer, uint64_t ConnId, bool Close) {
   LOG_TRACE("enter");
   auto ConnPair = main_impl::g_EImpl->TcpIdToConn.find(ConnId);
@@ -496,7 +495,7 @@ static void TimeWheelTickImpl(const FN_CreateJob &Function, void *UserData) {
   auto EImpl = reinterpret_cast<EngineImpl *>(UserData);
   // dispatch a `JobCreateAndRun` async ITC event
   ssize_t Index = EImpl->Dispatcher->NextThreadIndex();
-  ThreadContext *Worker = EImpl->Threads[Index];
+  ThreadContext *Worker = EImpl->Threads[Index].get();
   ItcEvent *Event = new itc::JobCreateAndRun(Function);  // copy: Function may fire again next minute
   Worker->MainToWorkerQueue.Enqueue(Event);
   // fire an async notification

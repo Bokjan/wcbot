@@ -56,7 +56,9 @@ class TimeWheelImpl {
 
 TimeWheel::TimeWheel() : PImpl(new TimeWheelImpl()) {}
 
-TimeWheel::~TimeWheel() { delete PImpl; }
+// Defined out-of-line so the compiler sees the full `TimeWheelImpl` definition
+// when generating the destructor for `std::unique_ptr<TimeWheelImpl>`.
+TimeWheel::~TimeWheel() = default;
 
 void TimeWheelImpl::UpdateCurrentInfo() {
   time_t T = time(nullptr);

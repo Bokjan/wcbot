@@ -1,6 +1,7 @@
 #include "Engine.h"
 
 #include <cstdlib>
+#include <memory>
 #include <utility>
 
 #include <unistd.h>
@@ -16,7 +17,9 @@ Engine &Engine::Get() {
 
 Engine::Engine() : PImpl(new EngineImpl()) {}
 
-Engine::~Engine() { delete PImpl; }
+// Defined out-of-line so the compiler sees the full `EngineImpl` definition
+// when generating the destructor for `std::unique_ptr<EngineImpl>`.
+Engine::~Engine() = default;
 
 bool Engine::ParseArguments(int argc, char *argv[]) {
   if (argc < 2 || argc > 3) {
@@ -45,9 +48,15 @@ bool Engine::Initialize() { return PImpl->Initialize(); }
 
 void Engine::Stop() { raise(SIGINT); }
 
-void Engine::RegisterServerCodec(Codec *CodecPtr) { PImpl->ServerCodecs.push_back(CodecPtr); }
+void Engine::RegisterServerCodec(Codec *CodecPtr) {
+  // Engine takes ownership immediately to keep public API source-compatible
+  // while internally using `std::unique_ptr<Codec>` containers.
+  PImpl->ServerCodecs.emplace_back(std::unique_ptr<Codec>(CodecPtr));
+}
 
-void Engine::RegisterClientCodec(Codec *CodecPtr) { PImpl->ClientCodecs.push_back(CodecPtr); }
+void Engine::RegisterClientCodec(Codec *CodecPtr) {
+  PImpl->ClientCodecs.emplace_back(std::unique_ptr<Codec>(CodecPtr));
+}
 
 void Engine::RegisterCallbackHandler(FN_CreateCallbackHandlerJob Function) {
   PImpl->CbHandlerCreator = std::move(Function);

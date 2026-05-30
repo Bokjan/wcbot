@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include <memory>
 #include <utility>
 
 #include "../Job/Job.h"
@@ -27,7 +28,7 @@ class ItcQueue {
   void Clear();
 
  protected:
-  ItcQueueImpl* PImpl;
+  std::unique_ptr<ItcQueueImpl> PImpl;
 };
 
 class ItcEvent {
@@ -35,6 +36,22 @@ class ItcEvent {
   virtual ~ItcEvent() = default;
   virtual void Process() = 0;
 };
+
+// ----------------------------------------------------------------------------
+// ItcEvent ownership convention
+//
+// `ItcEvent` instances are deliberately owned via raw pointers across thread
+// boundaries: the producer `new`s an event and `Enqueue`s it; the consumer
+// `Dequeue`s it, calls `Process()`, and then `Process()` itself calls
+// `DeleteThis()` to free the event. This single-owner relay-baton model is
+// the canonical idiom for cross-thread message passing and is intentionally
+// kept as raw pointers here.
+//
+// Embedded payload fields (e.g. `TcpMemoryBuffer*`, `MemoryBuffer*`) follow
+// the same single-ownership baton: `Process()` hands the payload off to the
+// receiving thread's owner (worker job / main loop write) and that owner is
+// then responsible for the eventual `delete`.
+// ----------------------------------------------------------------------------
 
 class MemoryBuffer;
 class TcpMemoryBuffer;

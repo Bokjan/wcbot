@@ -141,7 +141,7 @@ Job::Step HttpHandlerJob::DoInvokeCallbackJobStart() {
     State = StateEnum::kFinish;
     return Step::kContinue;
   }
-  auto* ClientMsg = wecom::client_message_impl::GenerateClientMessageByXml(Decrypted);
+  auto ClientMsg = wecom::client_message_impl::GenerateClientMessageByXml(Decrypted);
   if (ClientMsg == nullptr) {
     LOG_WARN("%s", "wecom::client_message_impl::GenerateClientMessageByXml failed");
     Response400BadRequest();
@@ -149,7 +149,7 @@ Job::Step HttpHandlerJob::DoInvokeCallbackJobStart() {
     return Step::kContinue;
   }
   auto* Child = Engine::Get().GetImpl().CbHandlerCreator();
-  Child->SetRequest(ClientMsg);
+  Child->SetRequest(std::move(ClientMsg));
   State = StateEnum::kInvokeCallbackJobFinish;
   InvokeChild(Child);
   return Step::kWaiting;

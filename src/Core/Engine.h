@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 
 #include "../Codec/Codec.h"
@@ -34,7 +35,7 @@ class Engine final {
   Engine(const Engine&) = delete;
   Engine(const Engine&&) = delete;
 
-  EngineImpl* PImpl;
+  std::unique_ptr<EngineImpl> PImpl;
 };
 
 }  // namespace wcbot
